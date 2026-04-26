@@ -30,6 +30,7 @@ export interface WikiPage {
 export interface SourceData {
   slug: string;
   title: string;
+  kind: "note" | "web";
   url?: string;
   date?: string;
   summary?: string;
@@ -115,32 +116,64 @@ export async function getAllPages(): Promise<WikiPageMeta[]> {
   return getAllPagesMeta();
 }
 
-// Find a page by user-typed topic. Matches exact title, terminal slug, or
-// any path-suffix slug ("people/karpathy" or "karpathy").
+// Slugify a path-form topic ("concepts/One Person Studios" or
+// "concepts/one-person-studios") by slugifying each segment, joining
+// with "/". A bare slugify() would strip the slash since "/" isn't a
+// word character — that broke `/wiki-dive concepts/foo` lookups.
+function slugifyPath(topic: string): string {
+  return topic
+    .split("/")
+    .map((s) => slugify(s))
+    .filter(Boolean)
+    .join("/");
+}
+
+// Find a page by user-typed topic. Accepts hierarchy at any level:
+// terminal slug ("karpathy"), full path ("people/andrej-karpathy"),
+// or page title ("Andrej Karpathy"). Path inputs are matched
+// strictly — typing "concepts/foo" won't accidentally match a page
+// in another category.
 export async function findPage(topic: string): Promise<WikiPageMeta | null> {
   const pages = await getAllPagesMeta();
-  const target = slugify(topic);
+  const trimmed = topic.trim();
+  if (!trimmed) return null;
+
+  // Path form ("concepts/one-person-studios"): match the full slug only.
+  if (trimmed.includes("/")) {
+    const slugged = slugifyPath(trimmed);
+    if (!slugged) return null;
+    return pages.find((p) => p.slug.join("/") === slugged) ?? null;
+  }
+
+  // Single-segment form: try exact title, full-slug, then terminal.
+  const target = slugify(trimmed);
   if (!target) return null;
-  // Exact title match (slugified) or full-slug match
   const exact = pages.find(
     (p) => slugify(p.title) === target || p.slug.join("/") === target,
   );
   if (exact) return exact;
-  // Terminal-segment match (e.g., "karpathy" → "people/andrej-karpathy" if its terminal is karpathy)
   const terminal = pages.find((p) => p.slug[p.slug.length - 1] === target);
-  if (terminal) return terminal;
-  return null;
+  return terminal ?? null;
 }
 
-// Suggest pages whose terminal slug or title contains the typed topic.
+// Suggest pages whose terminal slug or title looks like the topic.
 // Used when findPage returns null.
 export async function findClosestPages(
   topic: string,
   limit = 3,
 ): Promise<WikiPageMeta[]> {
   const pages = await getAllPagesMeta();
-  const target = slugify(topic);
+  const trimmed = topic.trim();
+  if (!trimmed) return [];
+
+  // For path-form input, fuzzy-match the terminal segment.
+  // ("concepts/one-prsn" → suggest pages whose terminal looks like "one-prsn".)
+  const segment = trimmed.includes("/")
+    ? trimmed.split("/").filter(Boolean).pop() ?? ""
+    : trimmed;
+  const target = slugify(segment);
   if (!target) return [];
+
   const scored = pages
     .map((p) => {
       const term = p.slug[p.slug.length - 1];
@@ -202,6 +235,7 @@ export async function getSource(slug: string): Promise<SourceData | null> {
     return {
       slug,
       title: typeof parsed.data.title === "string" ? parsed.data.title : slug,
+      kind: parsed.data.kind === "note" ? "note" : "web",
       url: typeof parsed.data.url === "string" ? parsed.data.url : undefined,
       date: typeof parsed.data.date === "string" ? parsed.data.date : undefined,
       summary:
