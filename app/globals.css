@@ -1,26 +1,228 @@
 @import "tailwindcss";
 
+/* ---------- Design tokens (see docs/design-system.md) ---------- */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-primary: #ffffff;
+  --bg-dot: #e7e5e4;
+  --bg-subtle: #fafaf9;
+
+  --ink-primary: #0a0a0a;
+  --ink-secondary: #525252;
+  --ink-tertiary: #a3a3a3;
+  --ink-muted: #d4d4d4;
+
+  --accent-lavender: #c1bbdd;
+  --accent-mint: #9ee5dd;
+
+  --font-heading: var(--font-vt323), "Courier New", ui-monospace, monospace;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro",
+    "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
+/* Tailwind v4 theme bridge — exposes tokens to utilities like text-ink-primary, bg-bg-subtle, etc. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-dot: var(--bg-dot);
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-ink-muted: var(--ink-muted);
+  --color-accent-lavender: var(--accent-lavender);
+  --color-accent-mint: var(--accent-mint);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-heading);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---------- Base ---------- */
+
+html {
+  background: var(--bg-primary);
+  color: var(--ink-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  color: var(--ink-primary);
+  background-color: var(--bg-primary);
+  background-image: radial-gradient(var(--bg-dot) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+
+::selection {
+  background: var(--accent-lavender);
+  color: var(--ink-primary);
+}
+
+/* Reset link defaults globally; specific surfaces opt back in. */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---------- Wiki article typography ---------- */
+
+.wiki-prose {
+  color: var(--ink-primary);
+  font-size: 16px;
+  line-height: 1.65;
+  font-family: var(--font-body);
+}
+
+.wiki-prose p {
+  margin: 0 0 1.1em;
+}
+.wiki-prose h1,
+.wiki-prose h2,
+.wiki-prose h3,
+.wiki-prose h4 {
+  font-family: var(--font-heading);
+  color: var(--ink-primary);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.wiki-prose h2 {
+  font-size: 1.85em;
+  margin: 1.6em 0 0.45em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--ink-muted);
+}
+.wiki-prose h3 {
+  font-size: 1.4em;
+  margin: 1.4em 0 0.35em;
+}
+.wiki-prose h4 {
+  font-size: 1.15em;
+  margin: 1.1em 0 0.25em;
+}
+
+.wiki-prose ul,
+.wiki-prose ol {
+  margin: 0 0 1em;
+  padding-left: 1.4em;
+}
+.wiki-prose ul {
+  list-style: disc;
+}
+.wiki-prose ol {
+  list-style: decimal;
+}
+.wiki-prose li {
+  margin: 0.2em 0;
+}
+
+.wiki-prose blockquote {
+  border-left: 3px solid var(--accent-lavender);
+  padding: 0.1em 0 0.1em 1em;
+  margin: 1em 0;
+  color: var(--ink-secondary);
+  font-style: italic;
+}
+
+.wiki-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--bg-subtle);
+  border: 1px solid var(--ink-muted);
+  padding: 0.05em 0.35em;
+  border-radius: 3px;
+}
+.wiki-prose pre {
+  background: var(--bg-subtle);
+  border: 1px solid var(--ink-muted);
+  padding: 0.9em 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.wiki-prose pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.wiki-prose table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.95em;
+  width: 100%;
+}
+.wiki-prose th,
+.wiki-prose td {
+  border: 1px solid var(--ink-muted);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.wiki-prose th {
+  background: var(--bg-subtle);
+  font-weight: 600;
+}
+
+.wiki-prose hr {
+  border: none;
+  border-top: 1px solid var(--ink-muted);
+  margin: 2em 0;
+}
+
+/* Internal wikilinks — black text with lavender underline */
+.wiki-prose a {
+  color: var(--ink-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-lavender);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition: text-decoration-thickness 120ms ease;
+}
+.wiki-prose a:hover {
+  text-decoration-thickness: 4px;
+}
+/* External links — dotted gray underline so they're distinguishable */
+.wiki-prose a[target="_blank"] {
+  text-decoration-style: dotted;
+  text-decoration-color: var(--ink-tertiary);
+}
+
+/* ---------- Source highlight ---------- */
+
+.source-highlight {
+  display: inline;
+  background: linear-gradient(
+    180deg,
+    transparent 55%,
+    var(--accent-mint) 55%,
+    var(--accent-mint) 90%,
+    transparent 90%
+  );
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease;
+}
+.source-highlight:hover {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--accent-mint) 0%,
+    var(--accent-mint) 100%,
+    transparent 100%
+  );
+}
+.source-highlight:focus-visible {
+  outline: 2px solid var(--accent-lavender);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---------- Heading utility for non-prose surfaces ---------- */
+
+.font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: 0.01em;
 }
