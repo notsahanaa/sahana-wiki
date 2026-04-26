@@ -1,6 +1,16 @@
 # Stage 2 — Slack Capture & Read
 
-> Status: planned, not built. Stage 1 (custom viewer) shipped 2026-04-25.
+> Status: shipped 2026-04-25 on Vercel. The deployed app at `https://sahana-wiki.vercel.app` hosts both the dashboard and the Slack endpoint.
+
+## Deployment mode
+
+The original spec (below) targeted local dev behind a cloudflared tunnel. The shipped version skips the tunnel and runs directly on Vercel. Implications worth knowing before reading the rest:
+
+- **No tunnel.** Slack POSTs straight to `https://sahana-wiki.vercel.app/api/slack/commands`.
+- **Read-only deployed filesystem.** `/wiki-add` cannot write to disk on Vercel. Instead it commits new files to `inbox/` via the **GitHub Contents API** (`lib/github.ts`), and the resulting push to `main` triggers Vercel to redeploy. The dashboard naturally reflects new content within ~1 minute.
+- **`/wiki-qna` is deferred to Stage 4.** Its current spec uses the `claude -p` CLI which is not available on Vercel functions. Stage 4 promotes synthesis to the Anthropic SDK; `/wiki-qna` ships then. The route currently returns a graceful "deferred" stub for it.
+
+The detailed plan that produced this implementation is at `~/.claude/plans/we-re-currently-building-stage-wondrous-abelson.md`.
 
 ## Goal
 
@@ -70,14 +80,16 @@ sahana-wiki/
    SLACK_BOT_TOKEN=xoxb-...
    ```
 
-## Tunneling (dev only)
+## Tunneling (NOT USED in shipped version)
 
-Slack must reach a public URL. Two options:
+> The shipped Stage 2 deploys directly to Vercel and skips this section entirely. Kept for reference if you ever want to run Stage 2 commands locally for development.
+
+For local development, Slack must reach a public URL via:
 
 - **`cloudflared tunnel --url http://localhost:3010`** — quick ephemeral URL. Re-paste into Slack each restart.
 - **Named tunnel** (recommended): `cloudflared tunnel create wiki-dev` → routes `wiki-dev.<your-domain>` to localhost. Stable URL, no re-paste.
 
-In Stage 6 (hosted) the tunnel goes away; Slack hits the Vercel URL directly.
+In production, the tunnel is replaced by the Vercel deploy.
 
 ## Implementation details
 

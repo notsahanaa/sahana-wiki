@@ -8,21 +8,21 @@ export const WIKI_COMMANDS: readonly WikiCommand[] = [
   {
     name: "/wiki-add",
     summary: "Capture text or a URL into the inbox. URLs are fetched and cleaned with Readability.",
-    status: "planned",
+    status: "live",
   },
   {
     name: "/wiki-list",
     summary: "List every wiki topic, nested by category. Read-only.",
-    status: "planned",
+    status: "live",
   },
   {
     name: "/wiki-dive",
     summary: "Look up a wiki page by name. Posts title + summary; full body in thread.",
-    status: "planned",
+    status: "live",
   },
   {
     name: "/wiki-qna",
-    summary: "Ask a question across the wiki. Returns a synthesized answer with citations.",
+    summary: "Ask a question across the wiki. Synthesized answer with citations. (Ships in Stage 4.)",
     status: "planned",
   },
   {

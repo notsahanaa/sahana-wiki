@@ -111,6 +111,59 @@ export async function getAllPageHrefs(): Promise<string[]> {
   return pages.map((p) => p.href);
 }
 
+export async function getAllPages(): Promise<WikiPageMeta[]> {
+  return getAllPagesMeta();
+}
+
+// Find a page by user-typed topic. Matches exact title, terminal slug, or
+// any path-suffix slug ("people/karpathy" or "karpathy").
+export async function findPage(topic: string): Promise<WikiPageMeta | null> {
+  const pages = await getAllPagesMeta();
+  const target = slugify(topic);
+  if (!target) return null;
+  // Exact title match (slugified) or full-slug match
+  const exact = pages.find(
+    (p) => slugify(p.title) === target || p.slug.join("/") === target,
+  );
+  if (exact) return exact;
+  // Terminal-segment match (e.g., "karpathy" → "people/andrej-karpathy" if its terminal is karpathy)
+  const terminal = pages.find((p) => p.slug[p.slug.length - 1] === target);
+  if (terminal) return terminal;
+  return null;
+}
+
+// Suggest pages whose terminal slug or title contains the typed topic.
+// Used when findPage returns null.
+export async function findClosestPages(
+  topic: string,
+  limit = 3,
+): Promise<WikiPageMeta[]> {
+  const pages = await getAllPagesMeta();
+  const target = slugify(topic);
+  if (!target) return [];
+  const scored = pages
+    .map((p) => {
+      const term = p.slug[p.slug.length - 1];
+      const titleSlug = slugify(p.title);
+      let score = 0;
+      if (term.startsWith(target) || titleSlug.startsWith(target)) score += 3;
+      if (term.includes(target) || titleSlug.includes(target)) score += 2;
+      // Substring of target inside the slug also counts as weak match
+      for (let len = Math.min(target.length, 4); len >= 3; len--) {
+        const head = target.slice(0, len);
+        if (term.includes(head) || titleSlug.includes(head)) {
+          score += 1;
+          break;
+        }
+      }
+      return { page: p, score };
+    })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+  return scored.map((s) => s.page);
+}
+
 // ---------- Single page ----------
 
 export async function getWikiPage(slug: string[]): Promise<WikiPage | null> {
