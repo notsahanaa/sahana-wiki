@@ -18,6 +18,14 @@ This wiki itself. A staged personal knowledge base inspired by [[people/andrej-k
 
 The viewer mimics {{source:farzapedia-screenshot}}Farzapedia and similar personal encyclopedias{{/source}}: categorized left sidebar listing every page, Wikipedia-style center article, plus a right-side **source panel** that opens on click of a `{{source:...}}` highlight.
 
+## Architectural lineage
+
+This project sits at the intersection of three patterns:
+
+- [[concepts/llm-as-librarian]] — Karpathy's PKM gist (one human curator, one LLM librarian, a folder of markdown).
+- [[concepts/folder-is-the-agent]] — Klaassen's framing that {{source:klaassen-folder-is-the-agent}}*"a model with enough context"* is itself the agent{{/source}}. The repo's `CLAUDE.md`, `docs/`, and the wiki content together form one folder-agent.
+- [[concepts/agent-native]] — Shipper and Claude's principles (parity, granularity, composability). The wiki is files-as-interface by design, which makes it {{source:every-agent-native-guide}}*"more transparent — users can always inspect them"*{{/source}} and lets a future agent gain parity with no extra tool surface.
+
 ## Roadmap
 
 See [[../../docs/stages/roadmap]] for the full 8-stage plan (Stage 0 through Stage 7).
@@ -32,5 +40,8 @@ See [[../../docs/stages/roadmap]] for the full 8-stage plan (Stage 0 through Sta
 ## Related
 
 - [[concepts/llm-as-librarian]]
+- [[concepts/folder-is-the-agent]]
+- [[concepts/agent-native]]
 - [[concepts/personal-knowledge-management]]
 - [[people/andrej-karpathy]]
+- [[people/kieran-klaassen]]

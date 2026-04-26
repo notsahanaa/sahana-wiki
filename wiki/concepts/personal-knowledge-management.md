@@ -30,4 +30,6 @@ Until recently, organization and synthesis were the human's job. The friction of
 ## Related
 
 - [[concepts/llm-as-librarian]]
+- [[concepts/folder-is-the-agent]] — the same insight applied to code repos
+- [[concepts/agent-native]] — broader software-architecture frame
 - [[projects/sahana-wiki]]

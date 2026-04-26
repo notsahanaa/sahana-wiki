@@ -37,8 +37,14 @@ The human owns *taste* and *direction*. The LLM owns *bookkeeping* and *synthesi
 
 The pure pattern uses Obsidian as the viewer and Claude Code as the editor. {{source:farzapedia-screenshot}}This project adds a custom Wikipedia-style web viewer{{/source}}, then progressively adds Slack capture, a browser clipper, automatic synthesis, agent-readable APIs, and a hosted deploy. See [[projects/sahana-wiki]].
 
+## Sibling pattern: folder-as-agent
+
+[[people/kieran-klaassen]]'s {{source:klaassen-folder-is-the-agent}}"the folder is the agent"{{/source}} is the same pattern from the engineering side — a code repo + `CLAUDE.md` + runbooks acting as a specialist agent. Different domain (software, not notes), same insight: rich shared context beats clever orchestration. See [[concepts/folder-is-the-agent]].
+
 ## Related
 
 - [[concepts/personal-knowledge-management]]
+- [[concepts/folder-is-the-agent]]
+- [[concepts/agent-native]]
 - [[people/andrej-karpathy]]
 - [[projects/sahana-wiki]]

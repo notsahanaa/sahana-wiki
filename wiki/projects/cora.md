@@ -1,0 +1,27 @@
+---
+title: Cora
+category: projects
+tags: [cora, every, agent-native, email]
+created: 2026-04-25
+updated: 2026-04-25
+---
+
+# Cora
+
+Every's AI email assistant (`cora.computer`), run by [[people/kieran-klaassen]]. The most-cited example in this wiki of {{source:parrott-four-apps}}production-scale agent-native architecture at non-trivial cost{{/source}}.
+
+## Why it matters
+
+Cora is the codebase that produced [[concepts/folder-is-the-agent]] — Klaassen's {{source:klaassen-folder-is-the-agent}}essay traces the pattern directly to Cora's repo structure{{/source}} and its protocol of feeding a new agent session a fixed reading order (`CLAUDE.md → architecture → assistant report → component creator`).
+
+## Cost honesty
+
+The most striking number from the {{source:parrott-four-apps}}four-apps writeup{{/source}}: **$1,500 days** in inference supporting thousands of users. Every's bet is that {{source:parrott-four-apps}}inference costs drop ~80% every few months{{/source}}, so this is short-term.
+
+## Related
+
+- [[people/kieran-klaassen]] — GM
+- [[concepts/folder-is-the-agent]] — pattern derived from this codebase
+- [[concepts/compound-engineering]] — Klaassen's methodology
+- [[concepts/agent-native]]
+- [[projects/every]]

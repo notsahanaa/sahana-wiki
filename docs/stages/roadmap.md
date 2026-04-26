@@ -10,7 +10,9 @@ The roadmap deliberately starts with Karpathy's raw setup (zero custom code) and
 
 Visual anchor: **Farzapedia / emrah.ca / "notes sobre el ahora"** — three-column layout. Left = nested topic tree with current topic highlighted. Center = Wikipedia-style article with internal `[[wikilinks]]` and inline source highlights (`{{source:slug}}...{{/source}}`). Right panel = hidden by default; opens on click of a source-highlight to show that source's date, summary, and link.
 
-LLM cost picture for Stages 0–5 is **$0 extra** — uses the Claude Code subscription via `claude -p` headless invocation. Only Stage 6 (hosted web) requires switching to the Claude API; that swap is one function.
+**LLM, while building & testing:** `claude -p` headless — uses the Claude Code subscription, no extra cost, fast to iterate. Acceptable as long as this is exploratory.
+
+**LLM, when this becomes a daily-use system:** swap `lib/synth.ts` to `@anthropic-ai/sdk` with prompt caching on the schema doc + `index.md`. Background jobs shouldn't be eating subscription credit during real use. The whole synth surface is one function so the swap is ~20 LOC.
 
 ---
 
@@ -36,7 +38,7 @@ Bookmarklet or Chrome extension → `/api/clip` → cleaned markdown into `/inbo
 
 ## Stage 4 — Auto-on-save synthesis
 
-Chokidar watches `/inbox/`, queues jobs, spawns `claude -p` with structured prompt to update wiki + log. Subscription-based, no API key.
+Chokidar watches `/inbox/`, queues jobs, runs synthesis through `lib/synth.ts` (initially `claude -p`, later API per the promotion note). The agent gets a structured prompt to update wiki + log.
 **Exit:** a week with no manual triggers.
 
 ## Stage 5 — Wiki as agent context (your "Phase 2")
@@ -46,7 +48,7 @@ MCP server: `list_topics`, `get_page`, `search`, `get_sources_for`, `get_recent_
 
 ## Stage 6 — Hosted web app (your "Phase 3")
 
-Vercel deploy, Clerk single-user auth, Vercel Blob storage, Anthropic SDK with prompt caching, Keep-style card input UI in the web app. Slack/clipper repoint to hosted URL.
+Vercel deploy, Clerk single-user auth, Vercel Blob storage, Keep-style card input UI in the web app. Slack/clipper repoint to hosted URL. **Synthesis must already be on the Anthropic SDK by this point** (the `claude` CLI doesn't run on Vercel) — if you didn't swap during the build/test → daily-use promotion above, swap now.
 **Exit:** lose your laptop and still have access.
 
 ## Stage 7 — (Optional) Public Farzapedia mode
@@ -60,8 +62,8 @@ Per-page visibility flag, public reads, auth-gated writes, permalinks/SEO.
 
 - **Stack:** Next.js 16 App Router + TypeScript + Tailwind v4 + shadcn-style components
 - **Markdown:** `react-markdown` + `remark-gfm` + `rehype-raw` + custom transforms for `[[wikilinks]]` and `{{source:slug}}...{{/source}}`
-- **LLM (Stages 4–5):** `claude -p` subprocess (Claude Code subscription)
-- **LLM (Stage 6+):** `@anthropic-ai/sdk` with prompt caching
+- **LLM (build & test):** `claude -p` headless via the Claude Code subscription. Wrapped behind `lib/synth.ts`.
+- **LLM (daily use / Stage 6 deploy):** `@anthropic-ai/sdk`, default model Claude Sonnet 4.6, prompt caching on `CLAUDE.md` + `index.md` (5-min window). Haiku 4.5 reserved for cheap classification. Swap is contained to the body of `lib/synth.ts`.
 - **Slack:** `@slack/bolt` + `cloudflared tunnel`
 - **File watcher (Stage 4):** `chokidar`
 - **Auth (Stage 6):** Clerk single-user
@@ -85,7 +87,7 @@ sahana-wiki/
 
 ## Explicit non-goals
 
-No mobile app. No multi-user collab. No real-time collab editing. No native desktop app. No vector DB until search becomes a felt need (revisit at Stage 5). No backwards-compatibility shims when migrating Stage 4 → Stage 6 synthesis.
+No mobile app. No multi-user collab. No real-time collab editing. No native desktop app. No vector DB until search becomes a felt need (revisit at Stage 5).
 
 ## Verification per stage
 
