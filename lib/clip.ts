@@ -1,6 +1,9 @@
-import { JSDOM } from "jsdom";
-import { Readability } from "@mozilla/readability";
-import TurndownService from "turndown";
+// jsdom (~10MB) + @mozilla/readability + turndown are loaded LAZILY inside
+// clipUrl. Loading them at module top blows past Slack's 3s ack window on
+// cold-start serverless invocations even when this file is dynamically
+// imported from the route handler.
+import type { JSDOM as JSDOMType } from "jsdom";
+import type TurndownServiceType from "turndown";
 
 export type ClipResult =
   | {
@@ -21,11 +24,18 @@ export type ClipResult =
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 sahana-wiki-clipper";
 
-const turndown = new TurndownService({
-  headingStyle: "atx",
-  codeBlockStyle: "fenced",
-  bulletListMarker: "-",
-});
+let cachedTurndown: TurndownServiceType | null = null;
+async function getTurndown(): Promise<TurndownServiceType> {
+  if (cachedTurndown) return cachedTurndown;
+  const mod = await import("turndown");
+  const Td = mod.default;
+  cachedTurndown = new Td({
+    headingStyle: "atx",
+    codeBlockStyle: "fenced",
+    bulletListMarker: "-",
+  });
+  return cachedTurndown;
+}
 
 export async function clipUrl(url: string): Promise<ClipResult> {
   let html: string;
@@ -52,8 +62,9 @@ export async function clipUrl(url: string): Promise<ClipResult> {
     };
   }
 
-  let dom: JSDOM;
+  let dom: JSDOMType;
   try {
+    const { JSDOM } = await import("jsdom");
     dom = new JSDOM(html, { url });
   } catch (err) {
     return { kind: "bare", url, title: url, reason: `parse failed: ${(err as Error).message}` };
@@ -61,8 +72,14 @@ export async function clipUrl(url: string): Promise<ClipResult> {
 
   const docTitle = dom.window.document.title?.trim() || url;
 
-  let article: ReturnType<Readability["parse"]>;
+  let article: {
+    title?: string | null;
+    byline?: string | null;
+    excerpt?: string | null;
+    content?: string | null;
+  } | null;
   try {
+    const { Readability } = await import("@mozilla/readability");
     article = new Readability(dom.window.document).parse();
   } catch (err) {
     return { kind: "bare", url, title: docTitle, reason: `readability threw: ${(err as Error).message}` };
@@ -72,6 +89,7 @@ export async function clipUrl(url: string): Promise<ClipResult> {
     return { kind: "bare", url, title: docTitle, reason: "readability could not extract content" };
   }
 
+  const turndown = await getTurndown();
   const markdown = turndown.turndown(article.content).trim();
   if (!markdown) {
     return { kind: "bare", url, title: article.title || docTitle, reason: "extracted content was empty" };
