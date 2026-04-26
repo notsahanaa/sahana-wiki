@@ -3,7 +3,7 @@ title: Agent-Native
 category: concepts
 tags: [agent-native, architecture, claude-code]
 created: 2026-04-25
-updated: 2026-04-25
+updated: 2026-04-26
 ---
 
 # Agent-Native
@@ -51,10 +51,21 @@ This is also why [[concepts/llm-as-librarian]] works: the wiki *is* the interfac
 
 From the {{source:every-agent-native-guide}}Every guide{{/source}}: agent-as-router (only deciding which feature to call), build-then-bolt-on, request/response thinking instead of loops, defensive tool design, workflow-shaped tools that bundle decisions, orphan UI actions the agent can't reach, context starvation, heuristic completion detection.
 
+## What it feels like from outside the engineering frame
+
+Sahana's *paradigms* essay describes the same shift from a non-technical user/observer's perspective: {{source:sahana-paradigms-agent-space-2026-04-12}}*"Interactions are cut down. So are touchpoints. You start. Agents do and deliver results. Interfaces are also being cut down. A lot of products can live in your slack."*{{/source}} And the implication for product thinkers: {{source:sahana-paradigms-agent-space-2026-04-12}}*"Stop thinking of products as static objects we keep adding to, and as intelligent, evolving, recursive entities that can fine-tune themselves based on user-interaction and usage data."*{{/source}} This is the user-side rephrasing of the "improvement over time" principle above.
+
+See [[concepts/super-porous-ecosystem]] for how she frames the *supply* side of agent-native software (atoms — prompts, tools, skills, MCPs, agents — composed physically rather than chemically).
+
 ## Related
+
+- [[concepts/super-porous-ecosystem]] — the supply-side view (atoms and how they compose)
+- [[concepts/hypercreativity]] — what working in agent-native systems feels like for the individual
+- [[concepts/one-person-studios]] — what agent-native makes possible at the org level
 
 - [[concepts/folder-is-the-agent]] — one specific architectural shape
 - [[concepts/llm-as-librarian]] — the PKM-flavored sibling
 - [[concepts/compound-engineering]] — Klaassen's methodology built on these ideas
 - [[projects/cora]], [[projects/monologue]] — production examples
 - [[people/dan-shipper]], [[people/kieran-klaassen]]
+- [[concepts/taste-as-skill]] — what differentiates builders when the substrate is commoditized

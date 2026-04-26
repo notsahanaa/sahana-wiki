@@ -3,7 +3,7 @@ title: Every
 category: projects
 tags: [every, agent-native, media, software]
 created: 2026-04-25
-updated: 2026-04-25
+updated: 2026-04-26
 ---
 
 # Every
@@ -12,7 +12,7 @@ An AI-native media + software company founded by [[people/dan-shipper]]. Publish
 
 ## Why it shows up across this wiki
 
-Every is the single most prolific public source on what it actually feels like to build agent-native software. Three of this wiki's foundational sources come from them — the {{source:every-agent-native-guide}}Shipper/Claude principles guide{{/source}}, the {{source:parrott-four-apps}}four-apps lessons writeup{{/source}}, and the {{source:parrott-25-person-four-agents}}internal operations breakdown{{/source}} — plus Klaassen's {{source:klaassen-folder-is-the-agent}}folder-is-the-agent essay{{/source}}.
+Every is the single most prolific public source on what it actually feels like to build agent-native software. Five of this wiki's foundational sources come from them — the {{source:every-agent-native-guide}}Shipper/Claude principles guide{{/source}}, the {{source:parrott-four-apps}}four-apps lessons writeup{{/source}}, the {{source:parrott-25-person-four-agents}}internal operations breakdown{{/source}}, Klaassen's {{source:klaassen-folder-is-the-agent}}folder-is-the-agent essay{{/source}}, and {{source:duffy-market-for-making-ai-better}}Alex Duffy's piece on the data-licensing market for training AI{{/source}}.
 
 ## Eating their own cooking
 
