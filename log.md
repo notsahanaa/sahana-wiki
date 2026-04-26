@@ -23,3 +23,38 @@ Append-only chronological log of ingests, queries, and maintenance.
 - **Stage 2.5: jsdom → linkedom.** Sahana pushed back on the "defer to Stage 3" call: Slack /wiki-add and the future browser extension cover different surfaces, both need to work. Replaced jsdom with linkedom in `lib/clip.ts` (with `injectBase()` helper to preserve relative-link resolution); dropped jsdom from `next.config.ts` `serverExternalPackages`. Smoke-tested locally on the two URLs that previously bare-referenced — both extract cleanly. Stage 2 retro updated to mark the issue resolved.
 - **Bug fix: `/wiki-dive` full-path lookup.** `findPage()` was calling `slugify()` on the whole topic string, which strips `/` since it's not a word char — so `/wiki-dive concepts/one-person-studios` returned "no page named ..." even though the page existed. Extracted a `slugifyPath()` helper that splits on `/` and slugifies each segment. Now you can deep-dive at any level of the hierarchy: terminal slug (`one-person-studios`), full path (`concepts/one-person-studios`), or title (`One Person Studios`). Smoke-tested 7 input variations, all resolve correctly.
 - **Ingest: Lewis Kallow on social dandelions.** First inbox capture after the linkedom fix — and it actually extracted (22KB of clean markdown, byline included). Promoted to `sources/kallow-social-dandelions`. Created `wiki/concepts/social-dandelions` (consolidates the central concept + complex contagions + wide bridges) and `wiki/people/lewis-kallow`. Cross-linked from `wiki/concepts/{agent-native, taste-as-skill}` and `wiki/projects/every` (now 6 Every sources). The concept page positions sociology as a sister claim to taste — both are "remaining edges" when code is commoditized.
+- **Schema change: dropped the people category.** The librarian now extracts only `concepts/` and `projects/` (plus `books/` reserved). Deleted all 5 `wiki/people/*.md` pages (andrej-karpathy, dan-shipper, katie-parrott, kieran-klaassen, lewis-kallow) and stripped every `[[people/...]]` wikilink across 11 concept/project pages, replacing each with the person's display name as plain text. Attribution now lives inline via `{{source:...}}` highlights and the source-card byline. Updated `lib/synth.ts` system preamble, `CLAUDE.md` schema doc, `components/TopicTree.tsx` + `lib/slack/handlers/list.ts` category arrays, and `index.md` (removed the People section). Stage-1, stage-2, and stage-4 docs updated to match. Rationale: people pages duplicated work the source bylines already do, and the librarian was burning ingest cycles maintaining biographical drift.
+- **Ingest: 8-article Every batch (manual, conversational).** Sahana dropped a list of 9 every.to URLs; one (`how-to-build-agent-native-lessons-from-four-apps`) was already covered by `sources/parrott-four-apps`, so 8 new captures. Promoted to:
+  - `sources/tina-he-boring-businesses` — Tina He's thesis-column piece on AI-era moats (knowledge compounders, workflow commons, reality's gatekeepers, marketplaces, vertical transformers).
+  - `sources/every-claw-school-guide` — Every's OpenClaw "Comprehensive Guide for Beginners" (Shipper + Williams + R2-C2 + Laz; framework by Peter Steinberger).
+  - `sources/parrott-ai-consumed-my-time` — *"AI Was Supposed to Free My Time. It Consumed It"*, with the Margot-night anecdote.
+  - `sources/parrott-board-games-and-ai` — board-game vocabulary (components/moves/sequencing/victory) as a teach for AI systems.
+  - `sources/parrott-claude-every-standards` — encoding Every's editorial standards into Claude; voice vs. style.
+  - `sources/duffy-board-game-trained-ai` — Qwen3-235B fine-tuned on *Diplomacy*; >10% gains on other games + transfer to Tau2 (customer support) and AssetOpsBench (industrial ops).
+  - `sources/parrott-ai-autopilot` — fluency = truth bias, the duplicate-assignment incident, three cognitive forcing functions.
+  - `sources/parrott-writing-with-ai-harder` — multi-stage writing pipeline rebuttal to McArdle/Alter; "Asshole" persona for argument soundness.
+- **New wiki pages from this batch (5):**
+  - `wiki/concepts/boring-businesses` — Tina He's five archetypes; framed as the demand-side mirror to `super-porous-ecosystem`.
+  - `wiki/projects/openclaw` — the framework + Claw vocabulary (`SOUL.md`, cron, heartbeat, ClawHub, pairing mode); table of Every staff Claws (Margot, Klont, Zosia, Pip).
+  - `wiki/concepts/ai-overwork` — Parrott's *consumed my time* piece consolidated; explicitly framed as the dark mirror of `hypercreativity`.
+  - `wiki/concepts/ai-autopilot` — Parrott's autopilot piece; explicitly framed as the negative-space of `taste-as-skill`. Companion failure to `ai-overwork`.
+  - `wiki/concepts/games-as-curriculum` — Duffy on RL-via-games; positioned as the third leg of the training-data triangle (with `duffy-market-for-making-ai-better` and `parrott-board-games-and-ai`).
+- **Updated wiki pages (8):**
+  - `wiki/concepts/taste-as-skill` — added voice/style section + critic-personas + Parrott encoding methodology + ai-autopilot pointer.
+  - `wiki/concepts/compound-engineering` — added "worked example: writing" with Parrott's pipeline + the board-games framing as a usable opener.
+  - `wiki/concepts/hypercreativity` — added "the dark mirror" section pointing to `ai-overwork`.
+  - `wiki/concepts/super-porous-ecosystem` — added "the demand-side mirror" section pointing to `boring-businesses`.
+  - `wiki/concepts/agent-native` — added "parity, reframed: messaging as the UI" (claws) + "oversight failures" (overwork + autopilot).
+  - `wiki/concepts/one-person-studios` — added Claws as comms layer + "the cost worth naming" (Margot incident → ai-overwork).
+  - `wiki/concepts/folder-is-the-agent` — added `SOUL.md` row to the patterns table; openclaw cross-link.
+  - `wiki/projects/every` — bumped from 6 → **15 Every sources** (largest single-publication concentration in the wiki); added "building a serious editorial system" section + Proof tooling note + recurring-byline expansion.
+  - `wiki/projects/cora` — added "Klaassen's personal stack" mentioning Klont (his Claw).
+- **index.md updated.** Added 4 new concept entries (`boring-businesses`, `games-as-curriculum`, `ai-overwork`, `ai-autopilot`) and 1 new project (`openclaw`). Bumped Every blurb to "fifteen foundational sources." Refined `taste-as-skill` blurb to mention the voice-vs-style distinction.
+- **Cross-cutting framings recorded:**
+  - Sahana's *super-porous-ecosystem* (supply side) ↔ Tina He's *boring-businesses* (demand side) — the two halves of "where does value go in the agent era."
+  - *hypercreativity* ↔ *ai-overwork* — same architecture, opposite mood.
+  - *taste-as-skill* ↔ *ai-autopilot* — taste only counts if exercised; autopilot is the failure mode where the muscle atrophies.
+  - *folder-is-the-agent* (project-scoped) ↔ *SOUL.md* (person-scoped, OpenClaw) — same pattern, different scope.
+- **Notes for future ingests / lint:**
+  - `wiki/concepts/llm-as-librarian` still references `{{source:karpathy-pkm-gist}}` and `{{source:farzapedia-screenshot}}` — both source files were deleted upstream of this ingest (visible in `git status`). Pre-existing and unrelated to this batch; flag for next lint pass.
+  - Bylines now also include **Tina He** (thesis), **Peter Steinberger** (OpenClaw creator, no Every byline but central to the framework), and (already present) **Alex Duffy** (now 2 sources).

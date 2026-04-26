@@ -29,7 +29,7 @@ Business leaders and teams looking to offload operational logistics onto AI agen
 
 ## Why it matters for `sahana-wiki`
 
-This is the *event* the [[concepts/agent-native]] piece [[people/katie-parrott]] wrote ("How We Run a 25-Person Company on Four AI Agents") emerged from — published six days later. The camp is therefore the live-demo counterpart to that essay: same agents, same Notion-DB substrate, taught directly. Useful as a reference when revisiting the operational pattern.
+This is the *event* the [[concepts/agent-native]] piece Katie Parrott wrote ("How We Run a 25-Person Company on Four AI Agents") emerged from — published six days later. The camp is therefore the live-demo counterpart to that essay: same agents, same Notion-DB substrate, taught directly. Useful as a reference when revisiting the operational pattern.
 
 ## Notes & contradictions
 

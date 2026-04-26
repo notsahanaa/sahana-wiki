@@ -31,9 +31,17 @@ The framing she gives:
 
 She's clear this is open: there must be some new skill, behavioural pattern, or orchestration model to handle this without exhaustion — but she's still figuring it out.
 
+## The dark mirror — when there's no stop condition
+
+{{source:parrott-ai-consumed-my-time}}Katie Parrott's *"AI Was Supposed to Free My Time. It Consumed It"*{{/source}} reports on the same substrate from the inside of an exhaustion spiral. {{source:parrott-ai-consumed-my-time}}*"AI feels different. It pulls us back because it feels good"*{{/source}} — variable-ratio reinforcement (the slot-machine pattern) plus FOBO produce an interaction loop that {{source:parrott-ai-consumed-my-time}}*"has no built-in stopping point."*{{/source}} The Margot night — 12 hours configuring a Claw, still up at 1 a.m. — is the emblem.
+
+Hypercreativity and [[concepts/ai-overwork]] are the same architecture, opposite mood. The wiki holds both.
+
 ## Related
 
 - [[concepts/one-person-studios]] — hypercreativity is the per-individual capability that makes one-person studios possible
 - [[concepts/agent-native]] — the technical substrate hypercreativity runs on
 - [[concepts/folder-is-the-agent]] — one specific orchestration pattern for the parallelism
 - [[concepts/compound-engineering]] — Klaassen's methodology for stacking parallel agent work
+- [[concepts/ai-overwork]] — the dark mirror; same substrate, opposite mood
+- [[concepts/ai-autopilot]] — the second personal-cost failure of the same substrate

@@ -234,7 +234,7 @@ After adding env vars to Vercel, trigger a redeploy (any new push to `main` work
 | Step | Status | Evidence |
 |---|---|---|
 | Vercel deploy Ready, dashboard at `/` returns 200 | ✅ | `curl -I https://sahana-wiki.vercel.app/` → `HTTP 200`, ~656ms TTFB |
-| Existing wiki page renders | ✅ | `curl -I https://sahana-wiki.vercel.app/wiki/people/andrej-karpathy` → `HTTP 200` |
+| Existing wiki page renders | ✅ | `curl -I https://sahana-wiki.vercel.app/wiki/concepts/llm-as-librarian` → `HTTP 200` |
 | `/api/slack/commands` reachable, verify runs | ✅ | `curl -X POST .../api/slack/commands` (no signature) → `HTTP 401 unauthorized: missing-headers` |
 | `/wiki-commands` in Slack | ✅ | Ephemeral list; four commands marked **live**, `/wiki-qna` marked planned |
 | `/wiki-list` in Slack | ✅ | Category tree matched dashboard sidebar; links opened in browser |

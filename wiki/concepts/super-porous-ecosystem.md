@@ -48,9 +48,16 @@ It's a curatorial skill, not a synthesis-from-scratch one. Closer to a DJ than a
 
 The atoms aren't all trustworthy. A super-porous ecosystem also means a super-porous attack surface — a malicious skill or MCP server can do real damage inside an agent loop. The curatorial skill includes "is this atom safe to combine," not just "does it compose."
 
+## The demand-side mirror
+
+If atoms are interchangeable on the supply side, *where does economic gravity collect?* {{source:tina-he-boring-businesses}}Tina He's *"The Boring Businesses That Will Dominate the AI Era"*{{/source}} is the cleanest answer: at the boundaries the atoms can't dissolve. {{source:tina-he-boring-businesses}}*"What endures is infrastructure AI must flow through, but cannot replace."*{{/source}} Five archetypes accumulate moats — knowledge compounders, workflow commons, reality's gatekeepers, marketplaces, vertical transformers. See [[concepts/boring-businesses]].
+
+The pairing is load-bearing for understanding the era: super-porous on the supply side, *infrastructure-shaped* on the demand side. Atoms are interchangeable, but the data, compliance, accumulated workflows, and regulated processes that *route* the atoms are not.
+
 ## Related
 
 - [[concepts/agent-native]] — the design principles that make atoms composable
 - [[concepts/folder-is-the-agent]] — atoms shaped as folders
 - [[concepts/compound-engineering]] — methodology for compounding agent-driven workflows
 - [[concepts/taste-as-skill]] — what differentiates curators when atoms are commodity
+- [[concepts/boring-businesses]] — the demand-side mirror: where moats actually form

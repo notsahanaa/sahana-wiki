@@ -1,9 +1,8 @@
 import { getWikiTree } from "@/lib/wiki";
 
-const CATEGORY_ORDER = ["concepts", "people", "projects", "books"];
+const CATEGORY_ORDER = ["concepts", "projects", "books"];
 const CATEGORY_LABEL: Record<string, string> = {
   concepts: "Concepts",
-  people: "People",
   projects: "Projects",
   books: "Books",
   uncategorized: "Other",

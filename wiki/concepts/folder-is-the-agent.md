@@ -8,7 +8,7 @@ updated: 2026-04-25
 
 # The Folder Is the Agent
 
-A pattern named by [[people/kieran-klaassen]] in his {{source:klaassen-folder-is-the-agent}}essay of the same title{{/source}}: a well-structured project folder containing code, docs, runbooks, and a `CLAUDE.md` instructions file *is* an effective AI agent. No orchestration framework needed.
+A pattern named by Kieran Klaassen in his {{source:klaassen-folder-is-the-agent}}essay of the same title{{/source}}: a well-structured project folder containing code, docs, runbooks, and a `CLAUDE.md` instructions file *is* an effective AI agent. No orchestration framework needed.
 
 > {{source:klaassen-folder-is-the-agent}}*"The context that this folder gives an AI model makes the generalized model a specialist in whatever task or field you want it to excel in."*{{/source}}
 
@@ -49,11 +49,12 @@ The folder captures not just facts but {{source:klaassen-folder-is-the-agent}}pe
 
 | Pattern | Folder is | Used by |
 |---|---|---|
-| [[concepts/llm-as-librarian]] | A markdown wiki of sources + entity pages | [[people/andrej-karpathy]], [[projects/sahana-wiki]] |
-| Folder is the agent | A code repo + docs + runbooks | [[people/kieran-klaassen]], [[projects/cora]] |
-| [[concepts/compound-engineering]] | A composable plugin scaffold | [[people/kieran-klaassen]] |
+| [[concepts/llm-as-librarian]] | A markdown wiki of sources + entity pages | Andrej Karpathy, [[projects/sahana-wiki]] |
+| Folder is the agent | A code repo + docs + runbooks | Kieran Klaassen, [[projects/cora]] |
+| [[concepts/compound-engineering]] | A composable plugin scaffold | Kieran Klaassen |
+| `SOUL.md` (one per user) | A persistent personality + memory file for a Claw | [[projects/openclaw]] (Peter Steinberger) |
 
-All three are the same insight in different domains: **rich shared context beats clever orchestration**.
+All four are the same insight in different domains: **rich shared context beats clever orchestration**. {{source:every-claw-school-guide}}OpenClaw's `SOUL.md`{{/source}} is the variant scoped to a *person* rather than a project — the operational form of the [[concepts/one-person-studios]] *clones-not-employees* idea.
 
 ## Why this matters for `sahana-wiki`
 
@@ -64,5 +65,5 @@ All three are the same insight in different domains: **rich shared context beats
 - [[concepts/llm-as-librarian]]
 - [[concepts/agent-native]]
 - [[concepts/compound-engineering]]
-- [[people/kieran-klaassen]]
-- [[projects/cora]]
+- [[projects/cora]] — Kieran Klaassen's codebase, the canonical reference
+- [[projects/openclaw]] — `SOUL.md` is this pattern, scoped to a person

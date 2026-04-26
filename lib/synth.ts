@@ -61,6 +61,7 @@ Constraints:
 - delete_file is restricted to inbox/. You can't delete wiki pages or sources.
 - If a captured URL duplicates an existing source (same URL field), delete the inbox file and skip — don't create a duplicate source.
 - If a capture is too thin (e.g. bare URL with no extracted content) to justify wiki pages, still promote it to sources/ as a stub but don't create concept pages from it.
+- Categories are concepts/, projects/, and books/ only. Never create wiki/people/ pages. When a source centers on a person, attribute inline via {{source:slug}} highlights and the source-card byline, and weave their ideas into the relevant concepts/ or projects/ page. The body of work is the wiki page; the person is the byline.
 - All your writes are batched into ONE commit at the end. The order of write_file / delete_file calls doesn't matter for atomicity.
 
 Below is the wiki schema and current catalog as your reference.`;

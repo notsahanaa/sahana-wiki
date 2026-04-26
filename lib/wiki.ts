@@ -18,6 +18,9 @@ export interface WikiPageMeta {
   tags?: string[];
   created?: string;
   updated?: string;
+  // Aggregate over sources cited by this page. "mixed" when both kinds are
+  // present; undefined when the page cites no resolvable source.
+  sourceKind?: "note" | "web" | "mixed";
 }
 
 export interface WikiPage {
@@ -74,6 +77,21 @@ async function readPageMeta(filePath: string): Promise<WikiPageMeta> {
     typeof parsed.data.title === "string"
       ? parsed.data.title
       : slug[slug.length - 1].replace(/-/g, " ");
+
+  const referenced = new Set<string>();
+  for (const m of parsed.content.matchAll(/\{\{source:([\w-]+)\}\}/g)) {
+    referenced.add(m[1]);
+  }
+  let hasNote = false;
+  let hasWeb = false;
+  for (const slug of referenced) {
+    const kind = await getSourceKindCached(slug);
+    if (kind === "note") hasNote = true;
+    else if (kind === "web") hasWeb = true;
+  }
+  const sourceKind: "note" | "web" | "mixed" | undefined =
+    hasNote && hasWeb ? "mixed" : hasNote ? "note" : hasWeb ? "web" : undefined;
+
   return {
     title,
     category,
@@ -83,7 +101,26 @@ async function readPageMeta(filePath: string): Promise<WikiPageMeta> {
     tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : undefined,
     created: typeof parsed.data.created === "string" ? parsed.data.created : undefined,
     updated: typeof parsed.data.updated === "string" ? parsed.data.updated : undefined,
+    sourceKind,
   };
+}
+
+const sourceKindCache = new Map<string, "note" | "web" | null>();
+
+async function getSourceKindCached(slug: string): Promise<"note" | "web" | null> {
+  if (process.env.NODE_ENV === "production" && sourceKindCache.has(slug)) {
+    return sourceKindCache.get(slug)!;
+  }
+  try {
+    const raw = await fs.readFile(path.join(SOURCES_DIR, `${slug}.md`), "utf8");
+    const parsed = matter(raw);
+    const kind = parsed.data.kind === "note" ? "note" : "web";
+    sourceKindCache.set(slug, kind);
+    return kind;
+  } catch {
+    sourceKindCache.set(slug, null);
+    return null;
+  }
 }
 
 let cachedPages: WikiPageMeta[] | null = null;
@@ -237,7 +274,7 @@ export async function getSource(slug: string): Promise<SourceData | null> {
       title: typeof parsed.data.title === "string" ? parsed.data.title : slug,
       kind: parsed.data.kind === "note" ? "note" : "web",
       url: typeof parsed.data.url === "string" ? parsed.data.url : undefined,
-      date: typeof parsed.data.date === "string" ? parsed.data.date : undefined,
+      date: normalizeDate(parsed.data.date),
       summary:
         typeof parsed.data.summary === "string" ? parsed.data.summary : undefined,
       tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : undefined,
@@ -246,6 +283,16 @@ export async function getSource(slug: string): Promise<SourceData | null> {
   } catch {
     return null;
   }
+}
+
+// YAML parses unquoted ISO dates (date: 2026-04-13) into Date objects, not
+// strings. Normalize both to YYYY-MM-DD for display.
+function normalizeDate(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  return undefined;
 }
 
 // ---------- Markdown pre-processing ----------

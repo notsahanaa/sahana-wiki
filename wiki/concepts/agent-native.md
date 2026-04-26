@@ -8,7 +8,7 @@ updated: 2026-04-26
 
 # Agent-Native
 
-Software architected with AI agents as first-class citizens, not bolted on. The agent operates in autonomous loops, atomic tools provide capabilities, and prompts describe goals. Articulated in the {{source:every-agent-native-guide}}Every guide co-authored by [[people/dan-shipper]] and Claude{{/source}}, with field reports from {{source:parrott-four-apps}}four production apps in Parrott's lessons piece{{/source}}.
+Software architected with AI agents as first-class citizens, not bolted on. The agent operates in autonomous loops, atomic tools provide capabilities, and prompts describe goals. Articulated in the {{source:every-agent-native-guide}}Every guide co-authored by Dan Shipper and Claude{{/source}}, with field reports from {{source:parrott-four-apps}}four production apps in Parrott's lessons piece{{/source}}.
 
 ## Five principles
 
@@ -55,7 +55,18 @@ From the {{source:every-agent-native-guide}}Every guide{{/source}}: agent-as-rou
 
 Sahana's *paradigms* essay describes the same shift from a non-technical user/observer's perspective: {{source:sahana-paradigms-agent-space-2026-04-12}}*"Interactions are cut down. So are touchpoints. You start. Agents do and deliver results. Interfaces are also being cut down. A lot of products can live in your slack."*{{/source}} And the implication for product thinkers: {{source:sahana-paradigms-agent-space-2026-04-12}}*"Stop thinking of products as static objects we keep adding to, and as intelligent, evolving, recursive entities that can fine-tune themselves based on user-interaction and usage data."*{{/source}} This is the user-side rephrasing of the "improvement over time" principle above.
 
-See [[concepts/super-porous-ecosystem]] for how she frames the *supply* side of agent-native software (atoms — prompts, tools, skills, MCPs, agents — composed physically rather than chemically).
+See [[concepts/super-porous-ecosystem]] for how she frames the *supply* side of agent-native software (atoms — prompts, tools, skills, MCPs, agents — composed physically rather than chemically), and [[concepts/boring-businesses]] for the demand-side mirror.
+
+## Parity, reframed: messaging as the UI
+
+[[projects/openclaw]] pressure-tests the *parity* principle in an interesting direction. Claws live in WhatsApp / Telegram / Discord / SMS — there's no proprietary UI to be at parity *with*. Parity is instead with the **messaging affordances** of those apps (text, voice, files, links, group threads). And when something isn't reachable from those affordances, {{source:every-claw-school-guide}}*"it writes the code to make it happen."*{{/source}} Self-extension is parity-by-other-means.
+
+## Oversight failures within agent-native systems
+
+Two distinct personal-cost failures are worth keeping next to the principles, because they describe what goes wrong when the substrate works *too well*:
+
+- [[concepts/ai-overwork]] — {{source:parrott-ai-consumed-my-time}}*"the AI loop has no built-in stopping point"*{{/source}}; the slot-machine pull of an unbounded collaborator.
+- [[concepts/ai-autopilot]] — {{source:parrott-ai-autopilot}}*"the machine making it feel as if you already thought"*{{/source}}; polished output bypasses the cognitive checkpoint where review normally happens.
 
 ## Related
 
@@ -66,7 +77,9 @@ See [[concepts/super-porous-ecosystem]] for how she frames the *supply* side of 
 - [[concepts/folder-is-the-agent]] — one specific architectural shape
 - [[concepts/llm-as-librarian]] — the PKM-flavored sibling
 - [[concepts/compound-engineering]] — Klaassen's methodology built on these ideas
-- [[projects/cora]], [[projects/monologue]] — production examples
-- [[people/dan-shipper]], [[people/kieran-klaassen]]
+- [[projects/cora]], [[projects/monologue]], [[projects/openclaw]] — production examples
 - [[concepts/taste-as-skill]] — one remaining edge when the substrate is commoditized
 - [[concepts/social-dandelions]] — another remaining edge: sociology of trust and adoption
+- [[concepts/boring-businesses]] — where economic gravity collects when atoms are commodity
+- [[concepts/games-as-curriculum]] — how the underlying models actually get better
+- [[concepts/ai-overwork]], [[concepts/ai-autopilot]] — the two oversight failures of the substrate

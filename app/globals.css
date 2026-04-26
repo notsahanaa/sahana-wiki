@@ -14,6 +14,8 @@
 
   --accent-lavender: #c1bbdd;
   --accent-mint: #9ee5dd;
+  --accent-mint-ink: #5fa39c;
+  --accent-brown: #7c6153;
 
   --font-heading: var(--font-vt323), "Courier New", ui-monospace, monospace;
   --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro",
@@ -32,6 +34,8 @@
   --color-ink-muted: var(--ink-muted);
   --color-accent-lavender: var(--accent-lavender);
   --color-accent-mint: var(--accent-mint);
+  --color-accent-mint-ink: var(--accent-mint-ink);
+  --color-accent-brown: var(--accent-brown);
   --font-sans: var(--font-body);
   --font-mono: var(--font-mono);
   --font-heading: var(--font-heading);
@@ -218,6 +222,26 @@ a {
   outline: 2px solid var(--accent-lavender);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+.source-highlight-note {
+  background: linear-gradient(
+    180deg,
+    transparent 55%,
+    var(--accent-brown) 55%,
+    var(--accent-brown) 90%,
+    transparent 90%
+  );
+}
+.source-highlight-note:hover {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--accent-brown) 0%,
+    var(--accent-brown) 100%,
+    transparent 100%
+  );
+  color: var(--bg-primary);
 }
 
 /* ---------- Heading utility for non-prose surfaces ---------- */

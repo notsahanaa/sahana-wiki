@@ -10,7 +10,7 @@ A Next.js 16 web app that renders the markdown wiki as a three-column Wikipedia-
 
 | Column | Width | Contents |
 |---|---|---|
-| **Left** | 260px sticky | `TopicTree` — collapsible category sections (Concepts, People, Projects, Books) with chevrons; current page highlighted in lavender |
+| **Left** | 260px sticky | `TopicTree` — collapsible category sections (Concepts, Projects, Books) with chevrons; current page highlighted in lavender |
 | **Center** | fluid, max-w 720px | `WikiArticle` — title in VT323, body in SF Pro with inline `[[wikilinks]]` (lavender underline) and `{{source:...}}` highlights (mint marker) |
 | **Right** | 380px slide-in | `SourcePanel` — fixed-position drawer, hidden by default; opens with backdrop on source-highlight click; title, date, summary, tags, link to original |
 
@@ -129,7 +129,7 @@ The page header rendered the title from frontmatter as a styled big H1. The mark
 
 ### Wikilinks displayed as raw paths
 
-`[[people/andrej-karpathy]]` was rendering as the literal text `people/andrej-karpathy` in the article body. Fixed by changing `resolveWikilink` to return `{ href, displayTitle }` and passing the resolved page's title as the link text. Now `[[people/andrej-karpathy]]` shows as **Andrej Karpathy**. Broken links still show the original target text.
+`[[concepts/llm-as-librarian]]` was rendering as the literal text `concepts/llm-as-librarian` in the article body. Fixed by changing `resolveWikilink` to return `{ href, displayTitle }` and passing the resolved page's title as the link text. Now `[[concepts/llm-as-librarian]]` shows as **LLM as Librarian**. Broken links still show the original target text.
 
 ### CNA-generated `CLAUDE.md` was a placeholder
 
@@ -149,12 +149,12 @@ Twice during verification, a `for` loop calling `curl` reported `command not fou
 |---|---|
 | TS clean | `tsc --noEmit` → 0 errors |
 | Dev server | `Ready in 197ms`, Next 16.2.4 + Turbopack on :3010 |
-| All routes 200 | `/`, `/wiki/concepts/llm-as-librarian`, `/wiki/concepts/personal-knowledge-management`, `/wiki/people/andrej-karpathy`, `/wiki/projects/sahana-wiki` |
+| All routes 200 | `/`, `/wiki/concepts/llm-as-librarian`, `/wiki/concepts/personal-knowledge-management`, `/wiki/projects/sahana-wiki` |
 | Missing → 404 | `/wiki/does/not/exist` → 404 |
 | TopicTree renders | `aria-label="Wiki topics"` + 3 chevron-down + 4 chevron-right SVGs |
 | SourcePanel mounted off-screen | `aria-label="Source"` + `translate-x-full` |
 | Source highlights are buttons | `<button data-source="karpathy-pkm-gist" class="source-highlight" title="Karpathy's PKM Gist…">PKM gist</button>` |
-| Wikilinks resolve | `[[people/andrej-karpathy]]` → `href="/wiki/people/andrej-karpathy"` and shows "Andrej Karpathy" as the link text |
+| Wikilinks resolve | `[[concepts/llm-as-librarian]]` → `href="/wiki/concepts/llm-as-librarian"` and shows "LLM as Librarian" as the link text |
 | Design tokens compiled | `#c1bbdd`, `#9ee5dd`, `#0a0a0a`, `#fafaf9`, `#e7e5e4`, `#a3a3a3` all present in compiled CSS |
 | Dot grid present | `radial-gradient(var(--bg-dot) 1px, transparent 1px)` in body styles |
 | VT323 loaded | `<html class="vt323_dfae625b-module__YIsBIW__variable …">` |

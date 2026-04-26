@@ -5,6 +5,7 @@ date: 2026-04-12
 summary: Sahana's own essay from her newsletter *paradigms*, a personal overview of the agent-native era. Covers the shift from vibe coding to agentic coding, products as super-porous ecosystems of swappable atoms, taste as the new skill gap, hypercreativity (X-axis activity replacing flow), one-person studios as the norm, and the "fluid" human as the archetype this era rewards.
 tags: [paradigms, agent-native, sahana, hypercreativity, one-person-studio, taste]
 author: Sahana
+kind: note
 ---
 
 # The Agent Space: An Overview

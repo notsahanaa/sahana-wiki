@@ -48,14 +48,18 @@ export function WikiArticle({ title, category, updated, markdown, sources }: Pro
               const slug = (props as { "data-source"?: string })["data-source"];
               const data = slug ? sources[slug] : undefined;
               if (!data || !slug) {
-                return <mark {...props}>{children}</mark>;
+                return <>{children}</>;
               }
+              const className =
+                data.kind === "note"
+                  ? "source-highlight source-highlight-note"
+                  : "source-highlight";
               return (
                 <button
                   type="button"
                   onClick={() => open(data)}
                   data-source={slug}
-                  className="source-highlight"
+                  className={className}
                   title={data.title}
                 >
                   {children}

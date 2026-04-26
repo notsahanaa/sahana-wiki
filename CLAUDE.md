@@ -10,7 +10,7 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
 
 | Path | Purpose | Editable by |
 |---|---|---|
-| `wiki/` | Synthesized wiki pages (entities, concepts, projects, books) | LLM librarian |
+| `wiki/` | Synthesized wiki pages (concepts, projects, books) | LLM librarian |
 | `sources/` | Immutable raw clips, papers, notes | Append-only |
 | `inbox/` | Un-ingested captures from Slack/clipper (Stage 2+) | Auto-emptied during ingest |
 | `index.md` | Content catalog: every wiki page by category, one-line summary | LLM librarian |
@@ -22,12 +22,13 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
 
 - **Wikilinks:** `[[concepts/karpathy-pkm]]` or `[[Karpathy]]` — internal navigation between wiki pages. The renderer slugifies and routes to `/wiki/<path>`.
 - **Source highlights:** `{{source:karpathy-pkm-gist}}some highlighted phrase{{/source}}` — phrases backed by a specific source. The renderer turns these into clickable highlights; clicking opens the right panel with the source card (date, summary, link).
+- **No people pages.** Categories are `concepts/`, `projects/`, and `books/` only — never `wiki/people/`. People are attributed inline via `{{source:...}}` highlights and the source-card byline; their ideas live on the relevant concept or project page.
 - **Frontmatter (YAML):**
   ```yaml
   ---
-  title: Andrej Karpathy
-  category: people
-  tags: [ml, ai-researcher]
+  title: LLM as Librarian
+  category: concepts
+  tags: [pkm, llm, pattern]
   created: 2026-04-25
   updated: 2026-04-25
   ---
@@ -52,7 +53,7 @@ When a new source lands in `inbox/` or you (Sahana) say "I just read X, integrat
 3. Decide which `wiki/*.md` pages to create or update (typically 5–15 pages touch on a single rich source).
 4. For each updated page: keep voice consistent, add `{{source:slug}}` highlights wherever the new content is grounded in this source, add `[[wikilinks]]` to neighbors.
 5. Move the source from `inbox/` to `sources/` (Stage 4).
-6. Append a one-line entry to `log.md`: `2026-04-25 ingested sources/<slug> → updated wiki/concepts/X, wiki/people/Y`
+6. Append a one-line entry to `log.md`: `2026-04-25 ingested sources/<slug> → updated wiki/concepts/X, wiki/projects/Y`
 7. Update `index.md` if new pages were created.
 
 ### Query

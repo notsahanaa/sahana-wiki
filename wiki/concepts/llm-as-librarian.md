@@ -8,7 +8,7 @@ updated: 2026-04-25
 
 # LLM as Librarian
 
-A pattern for personal knowledge management where an LLM agent maintains a folder of markdown files on behalf of a human curator. Articulated by [[people/andrej-karpathy]] in his {{source:karpathy-pkm-gist}}PKM gist{{/source}}.
+A pattern for personal knowledge management where an LLM agent maintains a folder of markdown files on behalf of a human curator. Articulated by Andrej Karpathy in his {{source:karpathy-pkm-gist}}PKM gist{{/source}}.
 
 ## The division of labor
 
@@ -39,12 +39,11 @@ The pure pattern uses Obsidian as the viewer and Claude Code as the editor. {{so
 
 ## Sibling pattern: folder-as-agent
 
-[[people/kieran-klaassen]]'s {{source:klaassen-folder-is-the-agent}}"the folder is the agent"{{/source}} is the same pattern from the engineering side — a code repo + `CLAUDE.md` + runbooks acting as a specialist agent. Different domain (software, not notes), same insight: rich shared context beats clever orchestration. See [[concepts/folder-is-the-agent]].
+Kieran Klaassen's {{source:klaassen-folder-is-the-agent}}"the folder is the agent"{{/source}} is the same pattern from the engineering side — a code repo + `CLAUDE.md` + runbooks acting as a specialist agent. Different domain (software, not notes), same insight: rich shared context beats clever orchestration. See [[concepts/folder-is-the-agent]].
 
 ## Related
 
 - [[concepts/personal-knowledge-management]]
 - [[concepts/folder-is-the-agent]]
 - [[concepts/agent-native]]
-- [[people/andrej-karpathy]]
 - [[projects/sahana-wiki]]

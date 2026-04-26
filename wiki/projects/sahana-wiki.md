@@ -8,7 +8,7 @@ updated: 2026-04-26
 
 # sahana-wiki
 
-This wiki itself. A staged personal knowledge base inspired by [[people/andrej-karpathy]]'s {{source:karpathy-pkm-gist}}LLM-PKM pattern{{/source}}, with a custom Farzapedia-style web viewer instead of Obsidian and a progression toward Slack capture, browser clipping, automatic synthesis, and agent-readable APIs.
+This wiki itself. A staged personal knowledge base inspired by Andrej Karpathy's {{source:karpathy-pkm-gist}}LLM-PKM pattern{{/source}}, with a custom Farzapedia-style web viewer instead of Obsidian and a progression toward Slack capture, browser clipping, automatic synthesis, and agent-readable APIs.
 
 ## Current stage
 
@@ -47,5 +47,3 @@ See [[../../docs/stages/roadmap]] for the full 8-stage plan (Stage 0 through Sta
 - [[concepts/folder-is-the-agent]]
 - [[concepts/agent-native]]
 - [[concepts/personal-knowledge-management]]
-- [[people/andrej-karpathy]]
-- [[people/kieran-klaassen]]

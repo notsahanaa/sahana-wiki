@@ -38,7 +38,12 @@ This is essentially the [[concepts/folder-is-the-agent]] pattern applied to the 
 ## Concrete examples in this wiki
 
 - [[projects/every]] runs a 25-person company on four AI agents — not strictly a one-person studio, but the same compression. See `sources/parrott-25-person-four-agents`.
-- [[people/kieran-klaassen]] runs 44 folder-agents for [[projects/cora]] — a one-person ops layer at scale.
+- Kieran Klaassen runs 44 folder-agents for [[projects/cora]] — a one-person ops layer at scale.
+- [[projects/openclaw]] is the comms layer this pattern needs — a Claw lives in WhatsApp / Telegram / SMS with a per-user `SOUL.md` file, runs cron jobs and a heartbeat loop, and writes code to extend itself when an integration is missing. Every staff each have one (Margot, Klont, Zosia, Pip).
+
+## The cost worth naming
+
+The Margot story in {{source:parrott-ai-consumed-my-time}}Parrott's *"AI Was Supposed to Free My Time"*{{/source}} — 12 hours configuring a Claw, still up at 1 a.m. — is the one-person studio's failure mode. {{source:parrott-ai-consumed-my-time}}*"The AI loop has no built-in stopping point."*{{/source}} The same architecture that lets a single person run a studio also lets the studio run them. See [[concepts/ai-overwork]].
 
 ## Related
 
@@ -46,3 +51,6 @@ This is essentially the [[concepts/folder-is-the-agent]] pattern applied to the 
 - [[concepts/folder-is-the-agent]] — the technical pattern for clones-not-employees
 - [[concepts/agent-native]] — the broader substrate
 - [[concepts/llm-as-librarian]] — `soul.md` is what an LLM-librarian curates, but for *self* instead of *knowledge*
+- [[projects/openclaw]] — the comms layer (Claws as `SOUL.md`-bearing assistants in messaging apps)
+- [[concepts/ai-overwork]] — the cost when the studio has no stop condition
+- [[concepts/ai-autopilot]] — the cost when polish stands in for judgment

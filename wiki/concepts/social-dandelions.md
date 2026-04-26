@@ -8,7 +8,7 @@ updated: 2026-04-26
 
 # Social Dandelions
 
-A name [[people/lewis-kallow]] uses (drawing on a 2016 PNAS study from Princeton/Rutgers/Yale) for the people who matter most when you're trying to spread a high-risk idea: not the most *popular* members of a community, but the most *socially active* — the ones who are present and visible across the most different interactions. {{source:kallow-social-dandelions}}*"Just as a dandelion is one of the most common and widely seen flowers, these students and farmers are the ones who are most present and visible to the most different people across the entire social ecosystem."*{{/source}}
+A name Lewis Kallow uses (drawing on a 2016 PNAS study from Princeton/Rutgers/Yale) for the people who matter most when you're trying to spread a high-risk idea: not the most *popular* members of a community, but the most *socially active* — the ones who are present and visible across the most different interactions. {{source:kallow-social-dandelions}}*"Just as a dandelion is one of the most common and widely seen flowers, these students and farmers are the ones who are most present and visible to the most different people across the entire social ecosystem."*{{/source}}
 
 ## Why this matters in the agent-native era
 
@@ -62,5 +62,4 @@ More immediately: this is one of the strongest articulations in the wiki of *why
 - [[concepts/agent-native]] — the broader frame this connects to
 - [[concepts/taste-as-skill]] — Sahana's parallel claim about another remaining edge
 - [[concepts/super-porous-ecosystem]] — when atoms are interchangeable, sociology and taste are what differentiate
-- [[people/lewis-kallow]] — the author
-- [[projects/every]] — publisher; six sources from them now
+- [[projects/every]] — publisher (Lewis Kallow byline); six sources from them now
