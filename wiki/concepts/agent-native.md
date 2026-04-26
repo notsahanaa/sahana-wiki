@@ -68,4 +68,5 @@ See [[concepts/super-porous-ecosystem]] for how she frames the *supply* side of 
 - [[concepts/compound-engineering]] — Klaassen's methodology built on these ideas
 - [[projects/cora]], [[projects/monologue]] — production examples
 - [[people/dan-shipper]], [[people/kieran-klaassen]]
-- [[concepts/taste-as-skill]] — what differentiates builders when the substrate is commoditized
+- [[concepts/taste-as-skill]] — one remaining edge when the substrate is commoditized
+- [[concepts/social-dandelions]] — another remaining edge: sociology of trust and adoption

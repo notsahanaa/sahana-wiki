@@ -1,11 +1,13 @@
 ---
-captured_at: 2026-04-26T09:15:33.138Z
-source: slack
-slack_user: "U0APS6XP1E0"
-slack_channel: "C0AV4RQJUG3"
-url: "https://every.to/p/ai-can-build-anything-social-dandelions-decide-what-spreads"
 title: "AI Can Build Anything. Social Dandelions Decide What Spreads."
-byline: "Lewis Kallow"
+url: "https://every.to/p/ai-can-build-anything-social-dandelions-decide-what-spreads"
+date: 2026-04
+summary: Lewis Kallow argues that with AI making code a commodity and distribution channels saturated, sociology is the last competitive edge. Complex ideas (high risk to adopt) require *wide bridges* — multiple trusted contacts independently recommending — to spread. Identify the *social dandelions* (the most socially-active members of a tight community, not the most popular) and lower adoption cost ruthlessly. Case studies span hybrid corn (Iowa, 1933), seatbelts, ChatGPT (135K early users were already in dense AI communities), Airbnb (beer meetings with NYC hosts), Strava (MAMILs at cycling races), and Slack (engineers as corporate dandelions).
+tags: [agent-native, sociology, distribution, every, lewis-kallow, social-dandelions, complex-contagions]
+byline: Lewis Kallow
+captured_via: slack
+captured_at: 2026-04-26T09:15:33.138Z
+kind: web
 ---
 # AI Can Build Anything. Social Dandelions Decide What Spreads.
 

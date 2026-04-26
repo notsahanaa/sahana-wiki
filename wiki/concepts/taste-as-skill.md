@@ -41,4 +41,5 @@ The point isn't nostalgia — it's that taste compounds. The references and inst
 - [[concepts/one-person-studios]] — taste is what keeps a one-person studio's output feeling personal as work scales
 - [[concepts/folder-is-the-agent]] — taste-as-context, captured in markdown files
 - [[concepts/super-porous-ecosystem]] — when atoms are interchangeable, taste is what arranges them
+- [[concepts/social-dandelions]] — sister claim: when code is commoditized, taste *and* sociology are the two remaining edges
 - [[projects/sahana-wiki]] — an attempt at a personal taste/knowledge artifact

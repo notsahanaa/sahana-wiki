@@ -12,7 +12,7 @@ An AI-native media + software company founded by [[people/dan-shipper]]. Publish
 
 ## Why it shows up across this wiki
 
-Every is the single most prolific public source on what it actually feels like to build agent-native software. Five of this wiki's foundational sources come from them — the {{source:every-agent-native-guide}}Shipper/Claude principles guide{{/source}}, the {{source:parrott-four-apps}}four-apps lessons writeup{{/source}}, the {{source:parrott-25-person-four-agents}}internal operations breakdown{{/source}}, Klaassen's {{source:klaassen-folder-is-the-agent}}folder-is-the-agent essay{{/source}}, and {{source:duffy-market-for-making-ai-better}}Alex Duffy's piece on the data-licensing market for training AI{{/source}}.
+Every is the single most prolific public source on what it actually feels like to build agent-native software. Six of this wiki's foundational sources come from them — the {{source:every-agent-native-guide}}Shipper/Claude principles guide{{/source}}, the {{source:parrott-four-apps}}four-apps lessons writeup{{/source}}, the {{source:parrott-25-person-four-agents}}internal operations breakdown{{/source}}, Klaassen's {{source:klaassen-folder-is-the-agent}}folder-is-the-agent essay{{/source}}, {{source:duffy-market-for-making-ai-better}}Alex Duffy's piece on the data-licensing market{{/source}}, and {{source:kallow-social-dandelions}}Lewis Kallow's "Social Dandelions" piece on sociology as the new bottleneck{{/source}}.
 
 ## Eating their own cooking
 
@@ -40,5 +40,7 @@ All four sit on top of three interconnected Notion DBs: calendar, tasks, strateg
 - [[people/dan-shipper]] — founder
 - [[people/katie-parrott]] — staff writer
 - [[people/kieran-klaassen]] — Cora GM
+- [[people/lewis-kallow]] — contributor on the sociology side
 - [[concepts/agent-native]] — the framework
+- [[concepts/social-dandelions]] — the most-cited concept from a non-engineering angle
 - [[projects/cora]], [[projects/monologue]] — products

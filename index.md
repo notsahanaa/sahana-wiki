@@ -13,6 +13,7 @@ The catalog of all wiki pages, grouped by category. The LLM librarian maintains 
 - [[people/dan-shipper]] — Founder of Every; co-author of the agent-native architecture guide.
 - [[people/kieran-klaassen]] — GM of Cora; named the folder-is-the-agent pattern; creator of compound engineering.
 - [[people/katie-parrott]] — Every staff writer; author of the four-apps and four-agents pieces.
+- [[people/lewis-kallow]] — Every contributor; ghostwriter; coined "social dandelions" as the persona to target for complex-contagion adoption.
 
 ## Concepts
 
@@ -25,11 +26,12 @@ The catalog of all wiki pages, grouped by category. The LLM librarian maintains 
 - [[concepts/hypercreativity]] — when one person runs many parallel build/think/publish loops via agents; X-axis activity replacing Y-axis flow.
 - [[concepts/one-person-studios]] — the individual at the center of a web of replaceable tools, instead of vice versa; clones-not-employees, `soul.md`.
 - [[concepts/taste-as-skill]] — when everyone can build, taste becomes the differentiator; builder-as-artist; aura as a deliverable.
+- [[concepts/social-dandelions]] — when code is commoditized and channels are saturated, sociology is the bottleneck; complex contagions, wide bridges, and the socially-active members who carry trust through tight communities.
 
 ## Projects
 
 - [[projects/sahana-wiki]] — this project.
-- [[projects/every]] — AI-native media + software company; source of five foundational sources now.
+- [[projects/every]] — AI-native media + software company; six foundational sources now.
 - [[projects/cora]] — Every's AI email assistant; original codebase for the folder-is-the-agent pattern.
 - [[projects/monologue]] — Every's read-later service; folder-based filesystem instead of a database.
 
