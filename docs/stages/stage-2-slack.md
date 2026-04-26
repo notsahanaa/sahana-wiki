@@ -1,6 +1,6 @@
 # Stage 2 — Slack Capture & Read
 
-> Status: shipped 2026-04-25 on Vercel. The deployed app at `https://sahana-wiki.vercel.app` hosts both the dashboard and the Slack endpoint.
+> Status: **shipped 2026-04-25** (initial Vercel deploy), handlers + ingest loop completed **2026-04-26**. The deployed app at `https://sahana-wiki.vercel.app` hosts both the dashboard and the Slack endpoint.
 
 ## Deployment mode
 
@@ -34,30 +34,41 @@ All operations are explicit slash commands. Free messages in `#wiki` are ignored
 
 ## Reply pattern
 
-Always threaded. Channel stays scrollable.
+Two mechanisms in play, used differently per command:
 
-- The slash command response posts an `in_channel` parent message (one short line: "✅ Added: …" or "🔍 Looking up …").
-- Anything longer (the page body for `/wiki-dive`, the Q&A answer for `/wiki-qna`, parsed metadata for `/wiki-add`) goes as a `chat.postMessage` reply with `thread_ts` set to the parent.
+- **`response_url`** (per-command, valid for 30 min, 5 follow-ups max). No bot token needed; can't thread.
+- **`chat.postMessage`** (Slack Web API, requires `SLACK_BOT_TOKEN`). Can thread.
 
-## Repo additions
+Per-command:
+
+- `/wiki-commands`, `/wiki-list` — synchronous JSON response only. No follow-up.
+- `/wiki-dive` — synchronous ephemeral ack ("🔍 Looking up …"); then via `waitUntil`: `chat.postMessage` for the title+summary parent, `chat.postMessage` for the body in thread, `response_url` to delete the ephemeral.
+- `/wiki-add` — synchronous ephemeral ack ("📥 Capturing…"); then via `waitUntil`: `response_url` with `replace_original: true` and `response_type: "in_channel"` to post the "✅ Saved …" message with the inbox-file link + GitHub commit link. No threaded metadata reply (kept simple for v1).
+
+## Repo additions (what actually shipped)
 
 ```
 sahana-wiki/
 ├── app/api/slack/
-│   ├── commands/route.ts          # slash command receiver
-│   └── events/route.ts            # placeholder, used in Stage 4
+│   └── commands/route.ts              # slash command receiver (POST handler)
 ├── lib/slack/
-│   ├── verify.ts                  # signing-secret HMAC check
-│   ├── post.ts                    # tiny chat.postMessage wrapper around the bot token
+│   ├── verify.ts                      # signing-secret HMAC check (timing-safe)
+│   ├── post.ts                        # response_url + chat.postMessage helpers
 │   └── handlers/
-│       ├── add.ts                 # /wiki-add → /inbox/*.md
-│       ├── list.ts                # /wiki-list → nested blocks
-│       ├── dive.ts                # /wiki-dive → page lookup + body
-│       └── qna.ts                 # /wiki-qna → claude -p synthesis
-├── lib/synth.ts                   # synthesis surface — claude -p now, Anthropic SDK later (also used by Stage 4)
-├── lib/clip.ts                    # URL fetch + Readability extraction (also used by Stage 3)
-└── inbox/                         # already exists (gitkeep'd from Stage 1)
+│       ├── commands.ts                # /wiki-commands — static registry of all commands
+│       ├── add.ts                     # /wiki-add → inbox/<timestamp>-<slug>-{note,clip}.md
+│       ├── list.ts                    # /wiki-list → Slack mrkdwn category tree
+│       └── dive.ts                    # /wiki-dive → page lookup + threaded body
+├── lib/github.ts                      # GitHub Contents API client (commitFile)
+├── lib/clip.ts                        # URL fetch + Readability (lazy-loaded jsdom)
+├── next.config.ts                     # serverExternalPackages for jsdom/readability/turndown
+└── inbox/                             # already exists (gitkeep'd from Stage 1)
 ```
+
+**Deferred to Stage 4** (NOT in this stage's repo):
+- `lib/slack/handlers/qna.ts` — `/wiki-qna` returns a deferral stub from `route.ts` instead.
+- `lib/synth.ts` — synthesis swap point. Ships when `/wiki-qna` does.
+- `app/api/slack/events/route.ts` — Slack Events API webhook. Ships when auto-ingest does.
 
 ## Slack app setup (one-time)
 
@@ -66,19 +77,22 @@ sahana-wiki/
    - `commands` — register slash commands
    - `chat:write` — post messages
    - `chat:write.public` — post in channels the bot isn't a member of (optional; we'll add the bot to `#wiki` anyway)
-3. **Slash commands** (Slash Commands page) — create five:
-   - `/wiki-add` → request URL `https://<tunnel>/api/slack/commands`
+3. **Slash commands** (Slash Commands page) — create five, all pointed at the same Request URL:
+   - `/wiki-add` → `https://sahana-wiki.vercel.app/api/slack/commands`
    - `/wiki-list` → same URL
    - `/wiki-dive` → same URL
-   - `/wiki-qna` → same URL
+   - `/wiki-qna` → same URL (returns deferral stub for now)
    - `/wiki-commands` → same URL
 4. Install to your workspace.
-5. Add the bot to `#wiki`.
-6. Copy **Signing Secret** and **Bot User OAuth Token** into `.env.local`:
+5. Add the bot to `#wiki` (or DM it directly — slash commands work workspace-wide).
+6. Copy **Signing Secret** and **Bot User OAuth Token** into Vercel project env (Production + Preview):
    ```
    SLACK_SIGNING_SECRET=...
    SLACK_BOT_TOKEN=xoxb-...
+   GITHUB_TOKEN=github_pat_...      # fine-grained, Contents:Read+Write on this repo only
+   GITHUB_REPO=notsahanaa/sahana-wiki
    ```
+7. Trigger a Vercel redeploy after adding env vars (a fresh `git push` works) so the running function picks them up.
 
 ## Tunneling (NOT USED in shipped version)
 
@@ -103,115 +117,134 @@ Implement as a 15-line helper. Call from each route before dispatch.
 
 ### Slash command receiver (`app/api/slack/commands/route.ts`)
 
-```ts
-// Pseudocode
-export async function POST(req: Request) {
-  const raw = await req.text();
-  if (!verifySlackSignature(req.headers, raw)) return new Response("bad sig", { status: 401 });
-  const params = new URLSearchParams(raw);
-  const command = params.get("command");        // "/wiki-add"
-  const text = params.get("text") ?? "";        // user-typed args
-  const channelId = params.get("channel_id");
-  const userId = params.get("user_id");
+The shipped route uses **dynamic imports** for handler modules and a **try/catch** that returns the raw exception text (truncated to 2KB) in the response body. Both were added to debug Vercel-runtime issues during development; both are kept because they're cheap and useful.
 
-  // Slack expects a response within 3s. We immediately ack with a parent message,
-  // then do the real work async and post follow-ups via the Web API.
-  switch (command) {
-    case "/wiki-add":  return handleAdd(text, channelId, userId);
-    case "/wiki-list": return handleList(channelId);
-    case "/wiki-dive": return handleDive(text, channelId);
-    case "/wiki-qna":  return handleQna(text, channelId);
-    default: return Response.json({ text: `unknown command ${command}` });
+```ts
+// Sketch of the actual route
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
+export async function POST(request: Request) {
+  try {
+    const rawBody = await request.text();
+    const verdict = verifySlackRequest(request.headers, rawBody, process.env.SLACK_SIGNING_SECRET);
+    if (!verdict.ok) return new Response(`unauthorized: ${verdict.reason}`, { status: 401 });
+
+    const params = new URLSearchParams(rawBody);
+    const command = params.get("command") ?? "";
+    // ...extract text, channelId, userId, responseUrl...
+
+    switch (command) {
+      case "/wiki-commands": return handleCommandsList();
+      case "/wiki-list":     { const { handleList } = await import("@/lib/slack/handlers/list"); return handleList(); }
+      case "/wiki-dive":     { const { handleDive } = await import("@/lib/slack/handlers/dive"); return handleDive({ ... }); }
+      case "/wiki-add":      { const { handleAdd } = await import("@/lib/slack/handlers/add"); return handleAdd({ ... }); }
+      case "/wiki-qna":      return Response.json({ response_type: "ephemeral", text: "/wiki-qna ships in Stage 4..." });
+      default:               return Response.json({ response_type: "ephemeral", text: `Unknown command ${command}` });
+    }
+  } catch (err) {
+    return new Response(`route error: ${(err as Error).message}\n${(err as Error).stack || ""}`.slice(0, 2000),
+      { status: 500, headers: { "Content-Type": "text/plain" } });
   }
 }
 ```
 
-For commands whose work fits in <2s (`/wiki-add` text, `/wiki-list`), respond synchronously with the parent message. For commands that may take longer (`/wiki-add` URL fetch, `/wiki-qna`), respond immediately with `🔍 Working…` and post the real result via `chat.postMessage` with `thread_ts` once done.
+**Why dynamic imports:** static imports of `lib/slack/handlers/add.ts` transitively pulled `jsdom` into the route module's startup, which crashed the function load on Vercel — see `## What didn't work` in `docs/stages/stage-2-vercel.md`. Dynamic imports keep the route handler load lightweight and only pay the heavy import cost on the command path that needs it.
 
 ### `/wiki-add` handler
 
-1. Detect URL via regex (`/^https?:\/\//`). If multiple URLs in args, take the first; the rest become note body.
-2. **URL:** call `lib/clip.ts` → fetch HTML → Readability → markdown. Filename: `inbox/2026-04-25-1530-<slug-from-title>-clip.md`.
-3. **Text:** filename: `inbox/2026-04-25-1530-<first-words-slug>-note.md`.
+1. Detect URL via regex (`/https?:\/\/[^\s)]+/i`). If a URL is present, it becomes the clip target; remaining text becomes a `## My note` section appended to the body.
+2. **URL:** dynamic-import `lib/clip.ts`, call `clipUrl(url)` → fetch HTML → `jsdom` → Readability → `turndown` markdown (all jsdom/readability/turndown loaded lazily inside `clipUrl`, after the Slack ack has already gone). Filename: `inbox/YYYY-MM-DD-HHMM-<title-slug>-clip.md`.
+3. **Text-only:** filename: `inbox/YYYY-MM-DD-HHMM-<first-words-slug>-note.md`. No `lib/clip.ts` import at all on this path — instant.
 4. Frontmatter on every inbox file:
    ```yaml
    ---
-   captured_at: 2026-04-25T15:30:00Z
+   captured_at: 2026-04-26T07:27:43.595Z
    source: slack
-   slack_user: <user_id>
-   slack_channel: <channel_id>
-   url: <only for clips>
-   title: <only for clips>
+   slack_user: "U0APS6XP1E0"
+   slack_channel: "C0AV4RQJUG3"
+   url: "..."          # only for clips
+   title: "..."        # only for clips
+   byline: "..."       # only for extracted clips with a byline
    ---
    ```
-5. Reply: parent `✅ Added: <title or first 60 chars>`. Thread: `Saved to inbox/<filename>` + the parsed metadata.
+5. **Commit:** call `lib/github.ts` `commitFile()` → `PUT /repos/{owner}/{repo}/contents/{path}` with base64 body. Returns commit URL. Each commit triggers Vercel auto-deploy via the GitHub integration.
+6. **Slack response flow:**
+   - Synchronous ack: `{ response_type: "ephemeral", text: "📥 Capturing…" }`.
+   - In the `waitUntil` callback: `postToResponseUrl(responseUrl, { response_type: "in_channel", replace_original: true, text: "✅ Saved <inbox-file> — _<summary>_ · <commit>" })` once the commit lands.
+   - On failure: post the exception detail back via `response_url` so the user sees what broke.
+7. **Bare-reference fallback** (clips only): if Readability can't extract content (paywall, JS-only page, current jsdom error on Vercel), the clip file is still saved with `url` + `title` only and the body says "automatic content extraction failed: <reason>. Re-clip via Stage 3 browser extension when available."
 
 ### `/wiki-list` handler
 
 1. Call `getWikiTree()` (from existing `lib/wiki.ts`).
-2. Format as Slack blocks: one `section` per category with a `mrkdwn` body. Use unicode chevrons `▾` for category headers and `▸` for pages so the visual matches the viewer's left tree.
-3. Each page is a Slack link to `http://localhost:3010<href>`. (In Stage 6 this becomes the public URL.)
-4. If the total tree is huge, truncate to top 30 pages and append `…and N more · /wiki-list all`. (Punt the `all` flag until needed.)
+2. Format as a single Slack `mrkdwn` block (not blocks API — simpler). Unicode chevrons `▾` for category headers and `▸` for pages match the viewer's left tree.
+3. Each page is a Slack link to `${WIKI_PUBLIC_URL}<href>` (set to `https://sahana-wiki.vercel.app` in Vercel env).
+4. Truncate at 30 pages with `…and N more — view at <dashboard>` tail.
+5. Returns synchronously; `response_type: "in_channel"` so everyone in the channel sees it.
 
 ### `/wiki-dive` handler
 
-1. Resolve `<topic>` against the same lookup `[[wikilink]]` resolution uses (`resolveWikilink` in `lib/wiki.ts` — refactor it out if needed).
-2. **No match:** post `No page named "<topic>". Try: <three closest by Levenshtein/slug-prefix>`.
-3. **Match:** parent message: `📄 *<page title>* — <one-line summary> · <link to viewer>`. Thread: full markdown body, with `{{source:slug}}…{{/source}}` flattened to plain text and `[[wikilinks]]` rewritten as Slack links to the viewer.
-4. The "one-line summary" is just the first sentence of the body (regex on first paragraph, cut at first `.` or 100 chars).
+1. Resolve `<topic>` via `findPage()` in `lib/wiki.ts` (added during this stage — exact title match → terminal slug match → null).
+2. **No match:** synchronous ephemeral reply: `"No page named *<topic>*. Try: \`<slug1>\`, \`<slug2>\`, \`<slug3>\`"` — top-3 by `findClosestPages()` (slug-prefix + substring scoring). Falls back to "Try `/wiki-list` to see all topics" if no near matches.
+3. **Match:** synchronous ephemeral ack `"🔍 Looking up *<title>*…"`. Inside `waitUntil`:
+   - `chat.postMessage` for the parent: `"📄 *<title>* — <first-sentence-summary> · <viewer-link>"`.
+   - `chat.postMessage` for the body in thread (`thread_ts: parent.ts`). Body is the page markdown with `{{source:slug}}…{{/source}}` flattened to plain text and `[[wikilinks]]` rewritten to `<deployed-url|Title>` Slack links.
+   - `postToResponseUrl({ delete_original: true })` to remove the ephemeral ack.
+4. **Body length cap:** 2,900 chars (Slack hard limit ~3,000 per message). Longer bodies get truncated with `"…truncated; full body at <dashboard>."`.
+5. **First-sentence summary:** `firstSentence()` strips frontmatter/headings, takes the first paragraph, cuts at the first sentence terminator or 180 chars.
 
-### `/wiki-qna` handler
+### `/wiki-qna` handler — *deferred to Stage 4*
 
-1. Parent message: `🔍 Looking through your wiki…` (use `response_type: in_channel`).
-2. Call `synthesize()` from `lib/synth.ts`. The build-time implementation spawns `claude -p` from a Node `child_process` with `cwd = repo root` and stdin payload:
-   ```
-   You are answering a question against a personal wiki.
-   The wiki schema and workflows are in CLAUDE.md (read it first).
-   The catalog of all pages is in index.md.
-   
-   Question: <user's question>
-   
-   Read whatever wiki/ pages are relevant. Answer concisely.
-   Cite sources as (see [[path/slug]]) after each claim.
-   Format the answer as Slack mrkdwn (no #, *bold* not **bold**, dashes for lists).
-   ```
-3. The agent has filesystem access (it's running in this repo, obeying `CLAUDE.md`), so it picks pages itself — no manual selector needed during build/test.
-4. When done (typical: 5–20s), post a thread reply with the answer.
-5. On timeout (>60s) or error: post the error in the thread, log to `log.md`.
+The route currently returns a stub:
 
-### `lib/synth.ts` — the swap point
+```
+/wiki-qna ships in Stage 4 alongside the Anthropic SDK swap (the
+current spec uses `claude -p` which doesn't run on Vercel). For now,
+run /wiki-commands to see what's live.
+```
 
-One function: `synthesize({ system, user, maxTokens }): Promise<string>`. Used identically by `/wiki-qna` (Stage 2) and the auto-ingest job (Stage 4).
+**Why deferred:** the original `/wiki-qna` design spawns `claude -p` via Node `child_process` against the local repo. The `claude` CLI isn't installed on Vercel functions, so this can't run on the deployed app at all. Stage 4 swaps `lib/synth.ts` to the Anthropic SDK; `/wiki-qna` ships then.
 
-- **Now (build & test):** body spawns `claude -p` with the prompt on stdin. No env var, no API key. Costs go against the Claude Code subscription.
-- **Later (daily use):** swap the body to `@anthropic-ai/sdk`. System prompt becomes `[CLAUDE.md, index.md]` with `cache_control: { type: "ephemeral" }` (5-min cache window). Default model: Sonnet 4.6. Add `ANTHROPIC_API_KEY` to env. Set monthly cap on the Anthropic console.
+The full spec (claude -p prompt, citation format, etc.) is preserved in the version-controlled history of this doc and can be revived directly when Stage 4 starts.
 
-Callers are unaffected. Migration is ~20 LOC inside `lib/synth.ts` plus an env var.
+### `lib/synth.ts` — *not built; Stage 4*
+
+The synthesis swap point planned for the original Stage 2. Not built. When `/wiki-qna` ships in Stage 4, `synthesize({ system, user, maxTokens })` will go straight to the Anthropic SDK with prompt caching on `[CLAUDE.md, index.md]`. Default model: Sonnet 4.6. `ANTHROPIC_API_KEY` added to Vercel env at that point.
 
 ## Environment variables
 
+Set in Vercel Project → Settings → Environment Variables (Production + Preview):
+
 ```
-SLACK_SIGNING_SECRET=...
-SLACK_BOT_TOKEN=xoxb-...
-WIKI_PUBLIC_URL=http://localhost:3010   # used in Slack message links; swap to hosted URL in Stage 6
-# ANTHROPIC_API_KEY=sk-ant-...          # not yet — added when we promote synth.ts to the SDK
+SLACK_SIGNING_SECRET=...                 # Slack app → Basic Information
+SLACK_BOT_TOKEN=xoxb-...                 # Slack app → OAuth & Permissions
+GITHUB_TOKEN=github_pat_...              # fine-grained PAT, Contents:Read+Write only
+GITHUB_REPO=notsahanaa/sahana-wiki       # owner/repo for /wiki-add commits
+WIKI_PUBLIC_URL=https://sahana-wiki.vercel.app  # used in Slack page links
+# ANTHROPIC_API_KEY=sk-ant-...           # not yet — added when /wiki-qna and synth.ts ship in Stage 4
 ```
 
-Add to `.env.local` and `.env.example`. Never commit `.env.local`.
+`.env.example` mirrors these for documentation. Never commit `.env.local`.
 
-## Verification
+After adding env vars to Vercel, trigger a redeploy (any new push to `main` works) so the running function picks them up — Vercel doesn't auto-redeploy on env changes.
 
-| Step | Test |
-|---|---|
-| App installed, bot in `#wiki` | Tunnel responds 200 to Slack URL verification challenge |
-| `/wiki-add hello world` | File `inbox/<timestamp>-hello-world-note.md` exists with `source: slack` frontmatter; bot posted ✅ in #wiki |
-| `/wiki-add https://example.com` | File `inbox/<timestamp>-...-clip.md` exists with extracted body + URL frontmatter |
-| `/wiki-list` | Bot posts nested category tree matching the viewer's left sidebar; links open the viewer |
-| `/wiki-dive llm-as-librarian` | Bot posts page title + summary in #wiki; full body in thread; viewer link works |
-| `/wiki-dive doesnotexist` | Bot posts "no page named ... try: …" with closest matches |
-| `/wiki-qna who is karpathy?` | Bot posts "🔍 Looking…", then thread reply with synthesized answer + at least one `[[wikilink]]` citation |
-| Bad signing secret | Route returns 401, no side effects |
-| Replay attack (old timestamp) | Route returns 401 |
+## Verification (as actually run, 2026-04-26)
+
+| Step | Status | Evidence |
+|---|---|---|
+| Vercel deploy Ready, dashboard at `/` returns 200 | ✅ | `curl -I https://sahana-wiki.vercel.app/` → `HTTP 200`, ~656ms TTFB |
+| Existing wiki page renders | ✅ | `curl -I https://sahana-wiki.vercel.app/wiki/people/andrej-karpathy` → `HTTP 200` |
+| `/api/slack/commands` reachable, verify runs | ✅ | `curl -X POST .../api/slack/commands` (no signature) → `HTTP 401 unauthorized: missing-headers` |
+| `/wiki-commands` in Slack | ✅ | Ephemeral list; four commands marked **live**, `/wiki-qna` marked planned |
+| `/wiki-list` in Slack | ✅ | Category tree matched dashboard sidebar; links opened in browser |
+| `/wiki-dive llm-as-librarian` | ✅ | Title + first sentence in channel; full body in thread; wikilinks clickable |
+| `/wiki-add hello world from slack` | ✅ | Capture appeared at `inbox/2026-04-26-...-note.md`; commit link in Slack opened the GitHub commit |
+| `/wiki-add https://every.to/source-code/the-folder-is-the-agent` | ⚠ partial | File saved as bare reference — Readability extraction failed at runtime. See "Risks & known issues" below. |
+| `/wiki-qna who is karpathy?` | ✅ (stub) | Returned the Stage 4 deferral message |
+| Tampered signature | ✅ | `unauthorized: bad-signature` |
+| Stale timestamp (>5 min) | ✅ (smoke-tested locally) | `unauthorized: stale` |
+| End-to-end ingest loop | ✅ | 3 captures from Slack `#wiki` → committed to `inbox/` → pulled locally → ingested into wiki pages → pushed → dashboard reflected the new pages within ~1 min
 
 ## Out of scope for Stage 2
 
@@ -222,13 +255,15 @@ Add to `.env.local` and `.env.example`. Never commit `.env.local`.
 - Notifications / proactive messages from the bot
 - Persisting Slack thread history into the wiki (a thread = ephemeral interaction; only `/wiki-add`-ed content lands in `/inbox/`)
 
-## Risks & mitigations
+## Risks & known issues
 
-| Risk | Mitigation |
-|---|---|
-| Slack 3s response window | Always ack immediately; do real work in a non-awaited promise that posts via `chat.postMessage` |
-| `claude -p` rate-limited or hung | Hard 60s timeout in `lib/synth.ts`; post error to thread; log to `log.md`. (When promoted to SDK: same 60s timeout + one retry on 429/5xx with backoff.) |
-| Subscription credit drain during heavy use | The whole reason `lib/synth.ts` exists as a swap point — promote to SDK before this becomes daily use. |
-| Ephemeral tunnel URL changes | Use named cloudflared tunnel for a stable URL; `.env.local` documents the URL |
-| Inbox spam from accidental commands | Each inbox file has full Slack source attribution in frontmatter; trivial to delete |
-| URL clipper hits paywall / requires JS | First pass: server-side fetch + Readability. If a site needs JS, fail gracefully and save just the URL + title; user can clip via Stage 3 browser extension later |
+| Risk / issue | Status | Mitigation |
+|---|---|---|
+| Slack 3s response window | ✅ handled | Synchronous ephemeral ack from every handler; real work in `waitUntil` callback. Confirmed working through one cold-start incident (jsdom transitive) which we fixed via dynamic import + lazy load. |
+| `claude -p` not available on Vercel | ✅ handled (by deferring) | `/wiki-qna` returns a stub; ships in Stage 4 with the Anthropic SDK swap. |
+| Inbox spam from accidental commands | ✅ acceptable | Each inbox file has full Slack-source attribution in frontmatter (`slack_user`, `slack_channel`, `captured_at`). Trivial to `git rm` later. |
+| jsdom `ERR_REQUIRE_ESM` on Vercel (URL clips) | ✅ resolved 2026-04-26 | Replaced jsdom with `linkedom` in `lib/clip.ts`. linkedom is ESM-native (no broken `html-encoding-sniffer` transitive), bundles cleanly, and is structurally compatible with `@mozilla/readability`. Smoke-tested locally against both URLs that previously bare-referenced — both now extract cleanly (~12-18KB of markdown each, bylines and excerpts intact). Live on Vercel since commit (see `stage-2-vercel.md` "What didn't work" for the resolution paragraph). |
+| Subscription credit drain (Stage 4) | n/a yet | Stage-4 concern; addressed when `lib/synth.ts` is built. |
+| GitHub PAT leaks via Vercel env | low | Fine-grained PAT scoped to `Contents: Read+Write` on this repo only, 90-day expiry. Never logged. Stored encrypted by Vercel. |
+| Vercel build minutes from `/wiki-add` | low | Free tier is 6,000 min/mo; ~30s × 100 captures/mo ≈ 50 min. Plenty of headroom. |
+| Inbox files accumulate without ingest | open | The "ingest synthesis" step is still manual (Sahana asks Claude in Code). Stage 4 (auto-ingest) closes this loop. Until then, inbox can build up — currently fine for personal use at observed capture rates. |

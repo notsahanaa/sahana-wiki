@@ -1,8 +1,10 @@
-// jsdom (~10MB) + @mozilla/readability + turndown are loaded LAZILY inside
-// clipUrl. Loading them at module top blows past Slack's 3s ack window on
-// cold-start serverless invocations even when this file is dynamically
-// imported from the route handler.
-import type { JSDOM as JSDOMType } from "jsdom";
+// linkedom is ESM-native and small enough to import at module top.
+// (We previously used jsdom, which crashed on Vercel because its
+// transitive html-encoding-sniffer dep does require() of an ES module.)
+//
+// Readability and turndown stay lazy: turndown for warm-instance
+// caching, readability for consistency.
+import { parseHTML } from "linkedom";
 import type TurndownServiceType from "turndown";
 
 export type ClipResult =
@@ -62,15 +64,17 @@ export async function clipUrl(url: string): Promise<ClipResult> {
     };
   }
 
-  let dom: JSDOMType;
+  let document: Document;
   try {
-    const { JSDOM } = await import("jsdom");
-    dom = new JSDOM(html, { url });
+    // Inject <base> so any relative links in the page resolve against url.
+    // linkedom (unlike jsdom) doesn't take a baseURI option directly.
+    const htmlWithBase = injectBase(html, url);
+    document = parseHTML(htmlWithBase).document as unknown as Document;
   } catch (err) {
     return { kind: "bare", url, title: url, reason: `parse failed: ${(err as Error).message}` };
   }
 
-  const docTitle = dom.window.document.title?.trim() || url;
+  const docTitle = document.title?.trim() || url;
 
   let article: {
     title?: string | null;
@@ -80,7 +84,9 @@ export async function clipUrl(url: string): Promise<ClipResult> {
   } | null;
   try {
     const { Readability } = await import("@mozilla/readability");
-    article = new Readability(dom.window.document).parse();
+    // Readability's typings expect lib.dom.d.ts Document; linkedom's
+    // Document is structurally compatible at runtime. Cast is safe.
+    article = new Readability(document).parse();
   } catch (err) {
     return { kind: "bare", url, title: docTitle, reason: `readability threw: ${(err as Error).message}` };
   }
@@ -103,4 +109,13 @@ export async function clipUrl(url: string): Promise<ClipResult> {
     excerpt: article.excerpt?.trim() || undefined,
     markdown,
   };
+}
+
+function injectBase(html: string, url: string): string {
+  if (/<base\b[^>]*>/i.test(html)) return html;
+  return html.replace(/<head\b[^>]*>/i, (m) => `${m}<base href="${escapeAttr(url)}">`);
+}
+
+function escapeAttr(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
