@@ -21,8 +21,13 @@ export const WIKI_COMMANDS: readonly WikiCommand[] = [
     status: "live",
   },
   {
+    name: "/wiki-ingest",
+    summary: "Synthesize pending inbox items into wiki pages. Idempotent — running on an empty inbox is a no-op.",
+    status: "live",
+  },
+  {
     name: "/wiki-qna",
-    summary: "Ask a question across the wiki. Synthesized answer with citations. (Ships in Stage 4.)",
+    summary: "Ask a question across the wiki. Synthesized answer with citations. (Ships later.)",
     status: "planned",
   },
   {

@@ -2,7 +2,9 @@ import { verifySlackRequest } from "@/lib/slack/verify";
 import { handleCommandsList } from "@/lib/slack/handlers/commands";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+// 300s for /wiki-ingest (LLM agentic loop can take 30-120s). Other commands
+// finish in <2s so the longer ceiling is harmless.
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
@@ -42,10 +44,15 @@ export async function POST(request: Request) {
         return handleAdd({ text, channelId, userId, responseUrl });
       }
 
+      case "/wiki-ingest": {
+        const { handleIngest } = await import("@/lib/slack/handlers/ingest");
+        return handleIngest({ responseUrl });
+      }
+
       case "/wiki-qna":
         return Response.json({
           response_type: "ephemeral",
-          text: "`/wiki-qna` ships in Stage 4 alongside the Anthropic SDK swap (the current spec uses `claude -p` which doesn't run on Vercel). For now, run `/wiki-commands` to see what's live.",
+          text: "`/wiki-qna` ships later (uses the same synth engine as `/wiki-ingest` but as a Q&A surface). For now, run `/wiki-commands` to see what's live.",
         });
 
       default:
