@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
@@ -214,6 +214,11 @@ function PageRow({
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const liRef = useRef<HTMLLIElement>(null);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressed = useRef(false);
+  const startY = useRef(0);
   const page: WikiPageMeta = entry.page;
 
   async function onDelete(e: React.MouseEvent) {
@@ -233,12 +238,74 @@ function PageRow({
     router.refresh();
   }
 
+  function clearPressTimer() {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    if (!entry.isPrimary) return;
+    startY.current = e.touches[0].clientY;
+    longPressed.current = false;
+    clearPressTimer();
+    pressTimer.current = setTimeout(() => {
+      longPressed.current = true;
+      setRevealed(true);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate?.(10);
+      }
+    }, 500);
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (Math.abs(e.touches[0].clientY - startY.current) > 8) {
+      clearPressTimer();
+    }
+  }
+
+  function handleTouchEnd() {
+    clearPressTimer();
+  }
+
+  function handleLinkClick(e: React.MouseEvent) {
+    if (longPressed.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      longPressed.current = false;
+    }
+  }
+
+  useEffect(() => {
+    if (!revealed) return;
+    function onPointerDown(e: Event) {
+      if (!liRef.current?.contains(e.target as Node)) {
+        setRevealed(false);
+      }
+    }
+    document.addEventListener("touchstart", onPointerDown, { passive: true });
+    document.addEventListener("mousedown", onPointerDown);
+    return () => {
+      document.removeEventListener("touchstart", onPointerDown);
+      document.removeEventListener("mousedown", onPointerDown);
+    };
+  }, [revealed]);
+
   return (
-    <li className="group relative">
+    <li ref={liRef} className="group relative">
       <Link
         href={page.href}
+        onClick={handleLinkClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        onContextMenu={(e) => {
+          if (longPressed.current || revealed) e.preventDefault();
+        }}
         className={cn(
-          "flex items-center gap-1 rounded px-2 py-1 pr-7 leading-snug transition",
+          "flex items-center gap-1 rounded px-2 py-1 pr-7 leading-snug transition select-none [-webkit-touch-callout:none]",
           active
             ? "bg-accent-lavender text-ink-primary"
             : "text-ink-secondary hover:bg-bg-subtle hover:text-ink-primary",
@@ -280,7 +347,12 @@ function PageRow({
           disabled={deleting}
           aria-label={`Delete ${page.title}`}
           title={`Delete ${page.title}`}
-          className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-ink-tertiary opacity-0 transition hover:bg-ink-muted/40 hover:text-ink-primary focus:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+          className={cn(
+            "absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-ink-tertiary transition hover:bg-ink-muted/40 hover:text-ink-primary focus-visible:opacity-100 focus-visible:pointer-events-auto disabled:opacity-50",
+            revealed
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
+          )}
         >
           <Trash2 className="h-3.5 w-3.5" strokeWidth={2.25} />
         </button>

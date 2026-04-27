@@ -56,6 +56,18 @@ The three workflows (`ingest`, `query`, `lint`) defined in `CLAUDE.md` are lifte
 - **No baseline data on real friction points.** We don't know whether the friction is "I can't capture from my phone" or "I can't see the graph" or "I forget what I added". Stage 1 onward learns from *use*, not from controlled experiment.
 - **No vibe-check on the librarian pattern itself.** Possible we discover at Stage 4 (auto-synthesis) that the LLM's choices about page boundaries don't match the user's mental model. Cheaper to find out in Obsidian first. Acceptable risk taken.
 
+## Evolutions to the Karpathy schema
+
+### Sources gained user notes (2026-04-27)
+
+In the pure Karpathy model, `sources/` is immutable raw clips — the human's own commentary lives on the `wiki/` pages, not on the source. In practice, this lost signal at the moment of capture: when Sahana saves a URL via `/wiki-add`, she usually has a one-line reason ("the bit about cluster scope is what matters here"), and dropping that on the floor meant the librarian had to guess which angle to emphasize.
+
+We added a third capture shape: **web source with attached commentary**. `/wiki-add <url> <optional notes>` now sends both the page and the user's notes through to the inbox. During synthesis, the librarian treats the notes as the strongest signal in the capture — they steer page selection, framing, and highlight placement. The notes then survive into the source's frontmatter as a `notes:` field and render at the bottom of the source-card panel under a "Notes" heading.
+
+This keeps the Karpathy split — `sources/` is still where raw provenance lives, `wiki/` is still where synthesized prose lives — but adds a small "what I thought when I saved this" surface right next to the source. Source cards now answer two questions at once: *what does the original say?* (summary + open-original link) and *why did I save it?* (notes).
+
+Code change landed across `lib/wiki.ts` (added `notes?: string` to `SourceData`), `components/SourcePanel.tsx` (Notes section), `lib/synth.ts` (workflow + frontmatter rules), `CLAUDE.md` (schema doc), and `lib/slack/handlers/add.ts` (help text). The capture path itself was already wired — Slack's `/wiki-add` was already passing trailing text through as `## My note`; what was missing was preserving it through synthesis and rendering it.
+
 ## If we had built Stage 0
 
 It would have looked like:
