@@ -105,7 +105,7 @@ export async function handleAdd(args: AddArgs): Promise<Response> {
   if (!text) {
     return Response.json({
       response_type: "ephemeral",
-      text: "Usage: `/wiki-add <text or URL>` — e.g. `/wiki-add https://example.com` or `/wiki-add a thought worth saving`",
+      text: "Usage: `/wiki-add <text or URL [optional notes]>` — e.g. `/wiki-add https://example.com why this matters`, `/wiki-add https://example.com`, or `/wiki-add a thought worth saving`",
     });
   }
 

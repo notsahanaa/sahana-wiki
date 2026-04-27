@@ -38,7 +38,7 @@ export function WikiArticle({ title, category, updated, markdown, sources }: Pro
   });
 
   return (
-    <article className="mx-auto max-w-3xl px-8 py-10">
+    <article className="mx-auto max-w-3xl px-5 py-8 md:px-8 md:py-10">
       <p className="font-heading text-sm uppercase tracking-wider text-ink-tertiary">
         {category}
         {updated && <> · updated {updated}</>}

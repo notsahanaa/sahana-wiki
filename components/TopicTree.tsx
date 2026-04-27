@@ -5,7 +5,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { WikiPageMeta, WikiTree } from "@/lib/wiki";
+import type {
+  ClusterGroup,
+  ClusteredPageEntry,
+  WikiClusteredTree,
+  WikiPageMeta,
+} from "@/lib/wiki";
 
 const CATEGORY_ORDER = ["concepts", "projects", "books"];
 const CATEGORY_LABEL: Record<string, string> = {
@@ -15,7 +20,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   uncategorized: "Other",
 };
 
-export function TopicTree({ tree }: { tree: WikiTree }) {
+export function TopicTree({ tree }: { tree: WikiClusteredTree }) {
   const pathname = usePathname();
   const categories = Object.keys(tree).sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a);
@@ -43,7 +48,7 @@ export function TopicTree({ tree }: { tree: WikiTree }) {
           <CategorySection
             key={cat}
             label={CATEGORY_LABEL[cat] ?? cat}
-            pages={tree[cat]}
+            groups={tree[cat]}
             currentPath={pathname}
           />
         ))}
@@ -54,16 +59,23 @@ export function TopicTree({ tree }: { tree: WikiTree }) {
 
 function CategorySection({
   label,
-  pages,
+  groups,
   currentPath,
 }: {
   label: string;
-  pages: WikiTree[string];
+  groups: ClusterGroup[];
   currentPath: string | null;
 }) {
-  const containsActive = pages.some((p) => p.href === currentPath);
+  const containsActive = groups.some(
+    (g) =>
+      g.pages.some((e) => e.page.href === currentPath) ||
+      g.cluster?.page?.href === currentPath,
+  );
   const [open, setOpen] = useState(true);
   const isOpen = open || containsActive;
+
+  // If there's exactly one group and it has no cluster, render flat (no inner header).
+  const isFlat = groups.length === 1 && groups[0].cluster === null;
 
   return (
     <section>
@@ -84,23 +96,125 @@ function CategorySection({
       </button>
 
       {isOpen && (
-        <ul className="mt-1.5 ml-1 flex flex-col gap-px border-l border-ink-muted pl-3">
-          {pages.map((page) => (
-            <PageRow
-              key={page.href}
-              page={page}
-              active={currentPath === page.href}
-            />
-          ))}
-        </ul>
+        <div className="mt-1.5 ml-1 flex flex-col gap-2 border-l border-ink-muted pl-3">
+          {isFlat ? (
+            <PageList entries={groups[0].pages} currentPath={currentPath} />
+          ) : (
+            groups.map((g, i) => (
+              <ClusterBlock
+                key={g.cluster?.slug ?? `unsorted-${i}`}
+                group={g}
+                currentPath={currentPath}
+              />
+            ))
+          )}
+        </div>
       )}
     </section>
   );
 }
 
-function PageRow({ page, active }: { page: WikiPageMeta; active: boolean }) {
+function ClusterBlock({
+  group,
+  currentPath,
+}: {
+  group: ClusterGroup;
+  currentPath: string | null;
+}) {
+  const containsActive =
+    group.pages.some((e) => e.page.href === currentPath) ||
+    group.cluster?.page?.href === currentPath;
+  const [open, setOpen] = useState(true);
+  const isOpen = open || containsActive;
+
+  const headerLabel = group.cluster?.title ?? "Unsorted";
+  const headerTitle = group.cluster?.description || undefined;
+  const headerHref = group.cluster?.page?.href;
+  const headerActive = headerHref === currentPath;
+
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={isOpen}
+          aria-label={`Toggle ${headerLabel}`}
+          className="flex shrink-0 items-center rounded p-0.5 text-ink-tertiary transition hover:text-ink-primary"
+        >
+          {isOpen ? (
+            <ChevronDown className="h-3 w-3" strokeWidth={2.25} />
+          ) : (
+            <ChevronRight className="h-3 w-3" strokeWidth={2.25} />
+          )}
+        </button>
+        {headerHref ? (
+          <Link
+            href={headerHref}
+            title={headerTitle}
+            className={cn(
+              "font-heading text-[11px] uppercase leading-none tracking-wider transition",
+              headerActive
+                ? "text-ink-primary"
+                : "text-ink-tertiary hover:text-ink-primary",
+            )}
+          >
+            {headerLabel}
+          </Link>
+        ) : (
+          <span
+            title={headerTitle}
+            className="font-heading text-[11px] uppercase leading-none tracking-wider text-ink-tertiary"
+          >
+            {headerLabel}
+          </span>
+        )}
+      </div>
+      {isOpen && (
+        <ul className="mt-1 ml-1.5 flex flex-col gap-px border-l border-ink-muted/60 pl-2.5">
+          {group.pages.map((entry) => (
+            <PageRow
+              key={`${group.cluster?.slug ?? "unsorted"}:${entry.page.href}`}
+              entry={entry}
+              active={currentPath === entry.page.href}
+            />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function PageList({
+  entries,
+  currentPath,
+}: {
+  entries: ClusteredPageEntry[];
+  currentPath: string | null;
+}) {
+  return (
+    <ul className="flex flex-col gap-px">
+      {entries.map((entry) => (
+        <PageRow
+          key={entry.page.href}
+          entry={entry}
+          active={currentPath === entry.page.href}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function PageRow({
+  entry,
+  active,
+}: {
+  entry: ClusteredPageEntry;
+  active: boolean;
+}) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const page: WikiPageMeta = entry.page;
 
   async function onDelete(e: React.MouseEvent) {
     e.preventDefault();
@@ -128,7 +242,9 @@ function PageRow({ page, active }: { page: WikiPageMeta; active: boolean }) {
           active
             ? "bg-accent-lavender text-ink-primary"
             : "text-ink-secondary hover:bg-bg-subtle hover:text-ink-primary",
+          !entry.isPrimary && "italic",
         )}
+        title={!entry.isPrimary ? "Echoed from another cluster" : undefined}
       >
         <ChevronRight
           className={cn(
@@ -151,17 +267,24 @@ function PageRow({ page, active }: { page: WikiPageMeta; active: boolean }) {
           />
         )}
         <span className="truncate">{page.title}</span>
+        {!entry.isPrimary && (
+          <span aria-hidden className="ml-auto pl-1 text-[10px] text-ink-tertiary">
+            ↗
+          </span>
+        )}
       </Link>
-      <button
-        type="button"
-        onClick={onDelete}
-        disabled={deleting}
-        aria-label={`Delete ${page.title}`}
-        title={`Delete ${page.title}`}
-        className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-ink-tertiary opacity-0 transition hover:bg-ink-muted/40 hover:text-ink-primary focus:opacity-100 group-hover:opacity-100 disabled:opacity-50"
-      >
-        <Trash2 className="h-3.5 w-3.5" strokeWidth={2.25} />
-      </button>
+      {entry.isPrimary && (
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={deleting}
+          aria-label={`Delete ${page.title}`}
+          title={`Delete ${page.title}`}
+          className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-ink-tertiary opacity-0 transition hover:bg-ink-muted/40 hover:text-ink-primary focus:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+        >
+          <Trash2 className="h-3.5 w-3.5" strokeWidth={2.25} />
+        </button>
+      )}
     </li>
   );
 }

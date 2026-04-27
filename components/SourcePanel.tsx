@@ -53,7 +53,7 @@ export function SourcePanel() {
         onClick={close}
         aria-hidden
         className={cn(
-          "fixed inset-0 z-30 bg-ink-primary/10 transition-opacity",
+          "fixed inset-0 z-40 bg-ink-primary/10 transition-opacity",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
@@ -62,7 +62,7 @@ export function SourcePanel() {
         role="complementary"
         aria-label="Source"
         className={cn(
-          "fixed right-0 top-0 z-40 flex h-full w-[380px] max-w-[90vw] flex-col border-l border-ink-muted bg-bg-subtle transition-transform duration-200",
+          "fixed right-0 top-0 z-50 flex h-full w-[380px] max-w-[90vw] flex-col border-l border-ink-muted bg-bg-subtle transition-transform duration-200",
           open ? "translate-x-0" : "translate-x-full",
         )}
       >
@@ -147,6 +147,18 @@ export function SourcePanel() {
                 Open original
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
+            )}
+            {activeSource.notes && (
+              <div className="mt-6 border-t border-ink-muted pt-4">
+                <span className="font-heading text-xs uppercase tracking-wider text-ink-tertiary">
+                  Notes
+                </span>
+                <div className="wiki-prose mt-2 text-[15px]">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {activeSource.notes}
+                  </ReactMarkdown>
+                </div>
+              </div>
             )}
           </div>
         )}

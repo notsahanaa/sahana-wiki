@@ -2,6 +2,7 @@
 title: AI Autopilot
 category: concepts
 tags: [agent-native, taste-as-skill, oversight, every, anti-pattern]
+clusters: [anti-patterns, paradigms]
 created: 2026-04-26
 updated: 2026-04-26
 ---

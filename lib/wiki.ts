@@ -1,11 +1,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import yaml from "js-yaml";
 import { slugify } from "./utils";
 
 const ROOT = process.cwd();
 const WIKI_DIR = path.join(ROOT, "wiki");
 const SOURCES_DIR = path.join(ROOT, "sources");
+const CLUSTERS_FILE = path.join(WIKI_DIR, "clusters.yml");
 
 // ---------- Types ----------
 
@@ -16,12 +18,34 @@ export interface WikiPageMeta {
   href: string; // "/wiki/concepts/llm-as-librarian"
   filePath: string;
   tags?: string[];
+  // First entry is the primary (canonical) cluster; later entries are
+  // additional memberships echoed in the sidebar.
+  clusters?: string[];
   created?: string;
   updated?: string;
   // Aggregate over sources cited by this page. "mixed" when both kinds are
   // present; undefined when the page cites no resolvable source.
   sourceKind?: "note" | "web" | "mixed";
 }
+
+export interface ClusterDef {
+  slug: string;
+  title: string;
+  description: string;
+  page?: { href: string; title: string };
+}
+
+export interface ClusterGroup {
+  cluster: ClusterDef | null; // null = "Unsorted" bucket
+  pages: ClusteredPageEntry[];
+}
+
+export interface ClusteredPageEntry {
+  page: WikiPageMeta;
+  isPrimary: boolean;
+}
+
+export type WikiClusteredTree = Record<string, ClusterGroup[]>;
 
 export interface WikiPage {
   meta: WikiPageMeta;
@@ -38,6 +62,7 @@ export interface SourceData {
   date?: string;
   summary?: string;
   tags?: string[];
+  notes?: string;
   body: string;
 }
 
@@ -99,6 +124,9 @@ async function readPageMeta(filePath: string): Promise<WikiPageMeta> {
     href: `/wiki/${slug.join("/")}`,
     filePath,
     tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : undefined,
+    clusters: Array.isArray(parsed.data.clusters)
+      ? parsed.data.clusters.filter((c): c is string => typeof c === "string")
+      : undefined,
     created: typeof parsed.data.created === "string" ? parsed.data.created : undefined,
     updated: typeof parsed.data.updated === "string" ? parsed.data.updated : undefined,
     sourceKind,
@@ -142,6 +170,133 @@ export async function getWikiTree(): Promise<WikiTree> {
     tree[p.category].push(p);
   }
   return tree;
+}
+
+// ---------- Cluster manifest ----------
+
+interface RawClusterEntry {
+  title?: unknown;
+  description?: unknown;
+  page?: unknown;
+}
+
+interface RawClusterFile {
+  clusters?: Record<string, RawClusterEntry>;
+}
+
+let cachedManifest: Map<string, ClusterDef> | null = null;
+
+async function loadClusterManifest(): Promise<Map<string, ClusterDef>> {
+  if (cachedManifest && process.env.NODE_ENV === "production") {
+    return cachedManifest;
+  }
+  const ordered = new Map<string, ClusterDef>();
+  let raw: string;
+  try {
+    raw = await fs.readFile(CLUSTERS_FILE, "utf8");
+  } catch {
+    cachedManifest = ordered;
+    return ordered;
+  }
+  const parsed = yaml.load(raw) as RawClusterFile | null;
+  if (!parsed || typeof parsed !== "object" || !parsed.clusters) {
+    cachedManifest = ordered;
+    return ordered;
+  }
+  const pages = await getAllPagesMeta();
+  for (const [slug, entry] of Object.entries(parsed.clusters)) {
+    const title = typeof entry.title === "string" ? entry.title : slug;
+    const description =
+      typeof entry.description === "string" ? entry.description.trim() : "";
+    // A cluster page lives at wiki/concepts/clusters/<slug>.md (or any
+    // category's clusters/ subfolder). Match by terminal slug.
+    const pageMatch = pages.find(
+      (p) =>
+        p.slug.length >= 2 &&
+        p.slug[p.slug.length - 2] === "clusters" &&
+        p.slug[p.slug.length - 1] === slug,
+    );
+    ordered.set(slug, {
+      slug,
+      title,
+      description,
+      page: pageMatch
+        ? { href: pageMatch.href, title: pageMatch.title }
+        : undefined,
+    });
+  }
+  cachedManifest = ordered;
+  return ordered;
+}
+
+export async function getClusterManifest(): Promise<ClusterDef[]> {
+  return Array.from((await loadClusterManifest()).values());
+}
+
+// Returns a per-category tree where each category is a list of cluster groups
+// (in manifest order). Pages with multiple clusters appear under each one;
+// the entry is marked isPrimary=true under their first declared cluster and
+// isPrimary=false under the rest. Pages without clusters fall into a final
+// "Unsorted" group (cluster: null). Categories without clustered pages get
+// a single null-cluster group containing all their pages.
+export async function getClusteredTree(): Promise<WikiClusteredTree> {
+  const pages = await getAllPagesMeta();
+  const manifest = await loadClusterManifest();
+  const result: WikiClusteredTree = {};
+
+  // Group by category first.
+  const byCategory: Record<string, WikiPageMeta[]> = {};
+  for (const p of pages) {
+    if (!byCategory[p.category]) byCategory[p.category] = [];
+    byCategory[p.category].push(p);
+  }
+
+  for (const [category, catPages] of Object.entries(byCategory)) {
+    // Hide cluster pages themselves from the regular concept list — they
+    // get rendered as cluster headers, not as ordinary children.
+    const visible = catPages.filter(
+      (p) => !(p.slug.length >= 2 && p.slug[p.slug.length - 2] === "clusters"),
+    );
+    const anyClustered = visible.some((p) => p.clusters && p.clusters.length > 0);
+
+    if (!anyClustered) {
+      result[category] = [{ cluster: null, pages: visible.map((page) => ({ page, isPrimary: true })) }];
+      continue;
+    }
+
+    const groups: ClusterGroup[] = [];
+    for (const def of manifest.values()) {
+      const entries: ClusteredPageEntry[] = [];
+      for (const page of visible) {
+        if (!page.clusters || page.clusters.length === 0) continue;
+        const idx = page.clusters.indexOf(def.slug);
+        if (idx === -1) continue;
+        entries.push({ page, isPrimary: idx === 0 });
+      }
+      if (entries.length > 0) {
+        entries.sort((a, b) => a.page.title.localeCompare(b.page.title));
+        groups.push({ cluster: def, pages: entries });
+      }
+    }
+
+    // Pages with no clusters declared, or pointing at slugs not in the manifest.
+    const unsorted: ClusteredPageEntry[] = [];
+    for (const page of visible) {
+      const hasManifestCluster =
+        page.clusters && page.clusters.some((c) => manifest.has(c));
+      if (!hasManifestCluster) {
+        unsorted.push({ page, isPrimary: true });
+      }
+    }
+    if (unsorted.length > 0) {
+      unsorted.sort((a, b) => a.page.title.localeCompare(b.page.title));
+      groups.push({ cluster: null, pages: unsorted });
+    }
+
+    result[category] = groups;
+  }
+
+  return result;
 }
 
 export async function getAllPageHrefs(): Promise<string[]> {
@@ -278,6 +433,8 @@ export async function getSource(slug: string): Promise<SourceData | null> {
       summary:
         typeof parsed.data.summary === "string" ? parsed.data.summary : undefined,
       tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : undefined,
+      notes:
+        typeof parsed.data.notes === "string" ? parsed.data.notes : undefined,
       body: parsed.content,
     };
   } catch {

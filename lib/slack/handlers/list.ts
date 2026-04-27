@@ -1,4 +1,4 @@
-import { getWikiTree } from "@/lib/wiki";
+import { getClusteredTree } from "@/lib/wiki";
 
 const CATEGORY_ORDER = ["concepts", "projects", "books"];
 const CATEGORY_LABEL: Record<string, string> = {
@@ -8,14 +8,14 @@ const CATEGORY_LABEL: Record<string, string> = {
   uncategorized: "Other",
 };
 
-const MAX_PAGES = 30;
+const MAX_PAGES = 40;
 
 function publicUrl(): string {
   return process.env.WIKI_PUBLIC_URL || "https://sahana-wiki.vercel.app";
 }
 
 export async function handleList(): Promise<Response> {
-  const tree = await getWikiTree();
+  const tree = await getClusteredTree();
   const base = publicUrl().replace(/\/+$/, "");
   const cats = Object.keys(tree).sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a);
@@ -30,16 +30,33 @@ export async function handleList(): Promise<Response> {
   let total = 0;
   let truncated = 0;
   for (const cat of cats) {
-    const pages = tree[cat];
-    if (!pages?.length) continue;
+    const groups = tree[cat];
+    if (!groups?.length) continue;
     lines.push(`▾ *${CATEGORY_LABEL[cat] ?? cat}*`);
-    for (const page of pages) {
-      if (total >= MAX_PAGES) {
-        truncated++;
-        continue;
+
+    const isFlat = groups.length === 1 && groups[0].cluster === null;
+
+    for (const group of groups) {
+      if (!isFlat) {
+        const headerLabel = group.cluster?.title ?? "Unsorted";
+        const headerLink = group.cluster?.page
+          ? `<${base}${group.cluster.page.href}|${headerLabel}>`
+          : headerLabel;
+        lines.push(`    ▸ *${headerLink}*`);
       }
-      lines.push(`    ▸ <${base}${page.href}|${page.title}>`);
-      total++;
+      for (const entry of group.pages) {
+        if (total >= MAX_PAGES) {
+          truncated++;
+          continue;
+        }
+        const indent = isFlat ? "    " : "        ";
+        const bullet = isFlat ? "▸" : "•";
+        const echo = entry.isPrimary ? "" : " ↗";
+        lines.push(
+          `${indent}${bullet} <${base}${entry.page.href}|${entry.page.title}>${echo}`,
+        );
+        total++;
+      }
     }
   }
   if (truncated > 0) {

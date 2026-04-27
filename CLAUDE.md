@@ -11,6 +11,8 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
 | Path | Purpose | Editable by |
 |---|---|---|
 | `wiki/` | Synthesized wiki pages (concepts, projects, books) | LLM librarian |
+| `wiki/clusters.yml` | Cluster manifest — slugs, titles, descriptions for the sidebar's second-level grouping | LLM librarian |
+| `wiki/concepts/clusters/` | Optional cluster pages (lazy — created only when a cluster earns its own prose) | LLM librarian |
 | `sources/` | Immutable raw clips, papers, notes | Append-only |
 | `inbox/` | Un-ingested captures from Slack/clipper (Stage 2+) | Auto-emptied during ingest |
 | `index.md` | Content catalog: every wiki page by category, one-line summary | LLM librarian |
@@ -29,10 +31,14 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
   title: LLM as Librarian
   category: concepts
   tags: [pkm, llm, pattern]
+  clusters: [agentic-coding]
   created: 2026-04-25
   updated: 2026-04-25
   ---
   ```
+  - `clusters` is an array. **First entry is the primary cluster** (canonical sidebar home). Additional entries echo the page under those clusters with a `↗` glyph.
+  - Cluster slugs must exist in `wiki/clusters.yml`. Adding a slug not in the manifest drops the page into "Unsorted".
+  - Concepts always declare clusters. Projects and books may omit `clusters` (they render flat).
 - **Source files** also use frontmatter:
   ```yaml
   ---
@@ -40,8 +46,13 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
   url: https://gist.github.com/karpathy/...
   date: 2026-02-14
   summary: One-paragraph synopsis used in the source-card panel.
+  notes: |
+    Optional. Sahana's own commentary captured alongside the URL via
+    `/wiki-add <url> <notes>`. Renders at the bottom of the source card
+    under a "Notes" heading. Omit when the user didn't add a note.
   ---
   ```
+- **`/wiki-add` syntax:** `/wiki-add <text-or-url>` — a URL alone clips the page; trailing text after a URL is captured as the user's notes on that source. Both the extracted page and the notes are analyzed during synthesis, and the notes survive to the source's `notes:` frontmatter field.
 
 ## Workflows
 
@@ -49,12 +60,16 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
 
 When a new source lands in `inbox/` or you (Sahana) say "I just read X, integrate it":
 1. Read the source file.
-2. Read `index.md` to know what already exists.
+2. Read `index.md` and `wiki/clusters.yml` to know what already exists and what clusters mean.
 3. Decide which `wiki/*.md` pages to create or update (typically 5–15 pages touch on a single rich source).
 4. For each updated page: keep voice consistent, add `{{source:slug}}` highlights wherever the new content is grounded in this source, add `[[wikilinks]]` to neighbors.
-5. Move the source from `inbox/` to `sources/` (Stage 4).
-6. Append a one-line entry to `log.md`: `2026-04-25 ingested sources/<slug> → updated wiki/concepts/X, wiki/projects/Y`
-7. Update `index.md` if new pages were created.
+5. **Cluster decisions per page (concepts only):**
+   - **Joins existing cluster(s):** add slugs to `clusters: [...]` in frontmatter. Multi-membership is fine and encouraged where it earns its keep. No manifest change.
+   - **Expands a cluster meaningfully:** when an ingest pushes a cluster's scope (the existing `description:` no longer covers it), rewrite the description in `wiki/clusters.yml`. If the cluster has a page in `wiki/concepts/clusters/<slug>.md`, add a `{{source:...}}` highlight there.
+   - **Creates a new cluster:** add an entry to `wiki/clusters.yml` with title + description. Use sparingly — prefer expanding an existing cluster over fragmenting.
+6. Move the source from `inbox/` to `sources/` (Stage 4).
+7. Append a one-line entry to `log.md`: `2026-04-25 ingested sources/<slug> → updated wiki/concepts/X, wiki/projects/Y`. Include cluster activity when relevant: `... → expanded cluster agentic-coding (added librarian sub-theme)`.
+8. Update `index.md` if new pages were created (mirror cluster groupings).
 
 ### Query
 

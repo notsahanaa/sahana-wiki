@@ -2,6 +2,7 @@
 title: Social Dandelions
 category: concepts
 tags: [sociology, distribution, agent-native, adoption]
+clusters: [moats]
 created: 2026-04-26
 updated: 2026-04-26
 ---

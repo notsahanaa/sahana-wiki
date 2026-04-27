@@ -2,6 +2,7 @@
 title: One-Person Studios
 category: concepts
 tags: [paradigms, agent-native, work, identity]
+clusters: [paradigms]
 created: 2026-04-26
 updated: 2026-04-26
 ---

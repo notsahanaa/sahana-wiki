@@ -2,6 +2,7 @@
 title: The Folder Is the Agent
 category: concepts
 tags: [agent-native, claude-code, pattern]
+clusters: [agentic-coding]
 created: 2026-04-25
 updated: 2026-04-25
 ---

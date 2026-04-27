@@ -2,6 +2,7 @@
 title: Boring Businesses That Will Dominate the AI Era
 category: concepts
 tags: [ai-moats, agent-native, infrastructure, defensibility, every]
+clusters: [moats]
 created: 2026-04-26
 updated: 2026-04-26
 ---

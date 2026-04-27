@@ -2,6 +2,7 @@
 title: Hypercreativity
 category: concepts
 tags: [paradigms, creativity, agent-native, workflow]
+clusters: [paradigms]
 created: 2026-04-26
 updated: 2026-04-26
 ---

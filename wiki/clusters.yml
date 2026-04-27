@@ -1,0 +1,41 @@
+# Cluster manifest — source of truth for the sidebar's second-level grouping.
+#
+# Order here = display order in the sidebar.
+# Each concept declares its memberships in its own frontmatter (`clusters: [...]`),
+# with the FIRST entry being the primary cluster (canonical home).
+#
+# Adding/expanding clusters: see the Ingest contract in CLAUDE.md.
+
+clusters:
+  agentic-coding:
+    title: Agentic Coding
+    description: >
+      How software gets built when AI agents are first-class — Claude Code
+      patterns, compound workflows, folder-as-agent, and the librarian division
+      of labor between human curator and LLM.
+
+  paradigms:
+    title: Agent-Native Paradigms
+    description: >
+      New shapes of creating, working, and living that the agent stack makes
+      possible — solo studios, parallel hypercreativity, taste as the
+      differentiator, products as composable atoms.
+
+  moats:
+    title: Moats & Defensibility
+    description: >
+      Where durable advantage collects when the model layer commoditizes —
+      boundaries with reality, distribution through trust, composable
+      ecosystems that integrate but can't be replaced.
+
+  anti-patterns:
+    title: Anti-Patterns
+    description: >
+      Failure modes of the agent-native era — output that feels reviewed but
+      isn't, work that consumes the personal time it was meant to free.
+
+  ai-capability:
+    title: AI Training & Capability
+    description: >
+      How AI gets good — curricula, transfer learning, the substrates that
+      produce reasoning rather than pattern-matching.

@@ -7,7 +7,7 @@ export default async function Home() {
   const all = Object.values(tree).flat();
 
   return (
-    <article className="mx-auto max-w-3xl px-8 py-10">
+    <article className="mx-auto max-w-3xl px-5 py-8 md:px-8 md:py-10">
       <p className="font-heading text-sm uppercase tracking-wider text-ink-tertiary">
         Home
       </p>

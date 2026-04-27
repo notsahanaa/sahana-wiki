@@ -2,6 +2,7 @@
 title: AI Overwork
 category: concepts
 tags: [agent-native, hypercreativity, work, every, anti-pattern, claws]
+clusters: [anti-patterns, paradigms]
 created: 2026-04-26
 updated: 2026-04-26
 ---

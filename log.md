@@ -58,3 +58,12 @@ Append-only chronological log of ingests, queries, and maintenance.
 - **Notes for future ingests / lint:**
   - `wiki/concepts/llm-as-librarian` still references `{{source:karpathy-pkm-gist}}` and `{{source:farzapedia-screenshot}}` — both source files were deleted upstream of this ingest (visible in `git status`). Pre-existing and unrelated to this batch; flag for next lint pass.
   - Bylines now also include **Tina He** (thesis), **Peter Steinberger** (OpenClaw creator, no Every byline but central to the framework), and (already present) **Alex Duffy** (now 2 sources).
+
+## 2026-04-26 — Cluster taxonomy introduced
+
+- Created `wiki/clusters.yml` with five clusters: agentic-coding, paradigms, moats, anti-patterns, ai-capability.
+- Added `clusters: [...]` to all 13 concept frontmatters. Multi-membership where it earns it: super-porous-ecosystem in [paradigms, moats]; ai-overwork and ai-autopilot in [anti-patterns, paradigms].
+- Sidebar (TopicTree) now renders concepts grouped by primary cluster, with multi-cluster pages echoed (italic + ↗) under non-primary clusters.
+- Cluster pages (`wiki/concepts/clusters/<slug>.md`) are not yet created — lazy upgrade path; sidebar header is plain text until a page exists.
+- `index.md` refactored to mirror cluster groupings.
+- `CLAUDE.md` ingest contract updated: read `clusters.yml` first; per-page cluster decision (join / expand / create) added as a new step.

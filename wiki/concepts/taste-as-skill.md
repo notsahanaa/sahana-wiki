@@ -2,6 +2,7 @@
 title: Taste as the New Skill Gap
 category: concepts
 tags: [paradigms, design, builder, identity]
+clusters: [paradigms]
 created: 2026-04-26
 updated: 2026-04-26
 ---
