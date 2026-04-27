@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Menu } from "lucide-react";
+import { InboxButton } from "./InboxButton";
 
 export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
   return (
@@ -17,6 +18,7 @@ export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
       <Link href="/" className="font-heading text-xl text-ink-primary">
         sahana-wiki
       </Link>
+      <InboxButton className="ml-auto" />
     </header>
   );
 }

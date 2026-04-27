@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { SourceProvider } from "./SourceContext";
 import { SourcePanel } from "./SourcePanel";
+import { InboxProvider } from "./InboxContext";
+import { InboxModal } from "./InboxModal";
 import { ResponsiveLayout } from "./ResponsiveLayout";
 import { getClusteredTree } from "@/lib/wiki";
 
@@ -9,8 +11,11 @@ export async function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SourceProvider>
-      <ResponsiveLayout tree={tree}>{children}</ResponsiveLayout>
-      <SourcePanel />
+      <InboxProvider>
+        <ResponsiveLayout tree={tree}>{children}</ResponsiveLayout>
+        <SourcePanel />
+        <InboxModal />
+      </InboxProvider>
     </SourceProvider>
   );
 }

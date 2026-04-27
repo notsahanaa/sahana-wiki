@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MobileHeader } from "./MobileHeader";
 import { TopicTree } from "./TopicTree";
+import { InboxSidebarPanel } from "./InboxSidebarPanel";
 import type { WikiClusteredTree } from "@/lib/wiki";
 
 export function ResponsiveLayout({
@@ -64,6 +65,8 @@ export function ResponsiveLayout({
 
         <main className="min-h-screen pt-14 md:pt-0">{children}</main>
       </div>
+
+      <InboxSidebarPanel />
     </>
   );
 }

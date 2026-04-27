@@ -49,6 +49,11 @@ export async function POST(request: Request) {
         return handleIngest({ responseUrl });
       }
 
+      case "/wiki-inbox": {
+        const { handleInbox } = await import("@/lib/slack/handlers/inbox");
+        return handleInbox();
+      }
+
       case "/wiki-qna":
         return Response.json({
           response_type: "ephemeral",
