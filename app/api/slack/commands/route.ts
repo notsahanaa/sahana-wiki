@@ -1,5 +1,4 @@
 import { verifySlackRequest } from "@/lib/slack/verify";
-import { handleCommandsList } from "@/lib/slack/handlers/commands";
 
 export const dynamic = "force-dynamic";
 // 300s for /wiki-ingest (LLM agentic loop can take 30-120s). Other commands
@@ -26,17 +25,9 @@ export async function POST(request: Request) {
     const responseUrl = params.get("response_url") ?? "";
 
     switch (command) {
-      case "/wiki-commands":
-        return handleCommandsList();
-
       case "/wiki-list": {
         const { handleList } = await import("@/lib/slack/handlers/list");
         return handleList();
-      }
-
-      case "/wiki-dive": {
-        const { handleDive } = await import("@/lib/slack/handlers/dive");
-        return handleDive({ text, channelId, responseUrl });
       }
 
       case "/wiki-add": {
@@ -57,13 +48,13 @@ export async function POST(request: Request) {
       case "/wiki-qna":
         return Response.json({
           response_type: "ephemeral",
-          text: "`/wiki-qna` ships later (uses the same synth engine as `/wiki-ingest` but as a Q&A surface). For now, run `/wiki-commands` to see what's live.",
+          text: "`/wiki-qna` ships later (uses the same synth engine as `/wiki-ingest` but as a Q&A surface).",
         });
 
       default:
         return Response.json({
           response_type: "ephemeral",
-          text: `Unknown command \`${command}\`. Run \`/wiki-commands\` for the list.`,
+          text: `Unknown command \`${command}\`.`,
         });
     }
   } catch (err) {

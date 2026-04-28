@@ -3,7 +3,7 @@ title: sahana-wiki (this project)
 category: projects
 tags: [project, pkm, in-progress]
 created: 2026-04-25
-updated: 2026-04-26
+updated: 2026-04-27
 ---
 
 # sahana-wiki
@@ -12,7 +12,7 @@ This wiki itself. A staged personal knowledge base inspired by Andrej Karpathy's
 
 ## Current stage
 
-**Stage 2** — Slack capture, deployed on Vercel. Next.js 16, Tailwind v4, three-column layout. Live at `https://sahana-wiki.vercel.app`. Slash commands `/wiki-commands`, `/wiki-list`, `/wiki-dive`, `/wiki-add` ship from `#wiki`; captures commit straight to GitHub via the Contents API and trigger an auto-redeploy. Synthesis (turning inbox files into wiki pages) is still conversational — that's Stage 4. `/wiki-qna` waits for Stage 4 too.
+**Stage 2** — Slack capture, deployed on Vercel. Next.js 16, Tailwind v4, three-column layout. Live at `https://sahana-wiki.vercel.app`. Slash commands `/wiki-list`, `/wiki-add`, `/wiki-ingest`, `/wiki-inbox` ship from `#wiki`; captures commit straight to GitHub via the Contents API and trigger an auto-redeploy. `/wiki-qna` waits for Stage 4.
 
 ## Visual reference
 

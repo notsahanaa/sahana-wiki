@@ -67,3 +67,7 @@ Append-only chronological log of ingests, queries, and maintenance.
 - Cluster pages (`wiki/concepts/clusters/<slug>.md`) are not yet created — lazy upgrade path; sidebar header is plain text until a page exists.
 - `index.md` refactored to mirror cluster groupings.
 - `CLAUDE.md` ingest contract updated: read `clusters.yml` first; per-page cluster decision (join / expand / create) added as a new step.
+
+## 2026-04-27
+
+- **Removed Slack commands `/wiki-commands` and `/wiki-dive`.** Dropped both cases from `app/api/slack/commands/route.ts`, deleted `lib/slack/handlers/commands.ts` and `lib/slack/handlers/dive.ts`, and pruned the dive-only helpers (`findPage`, `findClosestPages`, `slugifyPath`) from `lib/wiki.ts`. Updated the `/wiki-qna` ack and unknown-command fallback to no longer point at `/wiki-commands`. Live surface is now `/wiki-list`, `/wiki-add`, `/wiki-ingest`, `/wiki-inbox` (+ `/wiki-qna` planned).
