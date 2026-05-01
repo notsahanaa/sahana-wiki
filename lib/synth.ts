@@ -40,6 +40,34 @@ export interface IngestResult {
 const ALLOWED_WRITE_PATH = /^(wiki\/.+\.md|sources\/.+\.md|inbox\/.+\.md|index\.md|log\.md)$/;
 const MAX_OPS_PER_INGEST = 50;
 
+// Cap inbox file size sent to the model. Huge web clips (READMEs, listicles)
+// burn time + tokens with diminishing librarian value past the first ~10KB
+// of body. Frontmatter and any "## My note" section are always preserved —
+// the system preamble flags the user's note as first-class analytical input.
+const INBOX_TRUNCATE_AT_CHARS = 15000;
+const INBOX_KEEP_BODY_CHARS = 10000;
+
+function truncateInboxFile(content: string): string {
+  if (content.length <= INBOX_TRUNCATE_AT_CHARS) return content;
+
+  const fmEnd = content.startsWith("---") ? content.indexOf("\n---", 3) : -1;
+  const frontmatter = fmEnd === -1 ? "" : content.slice(0, fmEnd + 4);
+  const body = fmEnd === -1 ? content : content.slice(fmEnd + 4);
+
+  const noteMatch = body.match(/\n##\s+My\s+note\b[\s\S]*$/i);
+  const beforeNote = noteMatch ? body.slice(0, noteMatch.index) : body;
+  const note = noteMatch ? noteMatch[0] : "";
+
+  if (beforeNote.length <= INBOX_KEEP_BODY_CHARS) return content;
+
+  const omitted = beforeNote.length - INBOX_KEEP_BODY_CHARS;
+  const marker = note
+    ? `\n\n_[clip body truncated, ${omitted} chars omitted; user note preserved below]_\n`
+    : `\n\n_[clip body truncated, ${omitted} chars omitted]_\n`;
+
+  return frontmatter + beforeNote.slice(0, INBOX_KEEP_BODY_CHARS) + marker + note;
+}
+
 const SYNTH_SYSTEM_PREAMBLE = `You are the librarian for sahana-wiki. Your job: ingest each file in inbox/ into the wiki by creating or updating wiki pages, then move the source from inbox/ to sources/.
 
 Workflow per inbox file:
@@ -64,8 +92,10 @@ Constraints:
 - If a capture is too thin (e.g. bare URL with no extracted content) to justify wiki pages, still promote it to sources/ as a stub but don't create concept pages from it.
 - Categories are concepts/, projects/, and books/ only. Never create wiki/people/ pages. When a source centers on a person, attribute inline via {{source:slug}} highlights and the source-card byline, and weave their ideas into the relevant concepts/ or projects/ page. The body of work is the wiki page; the person is the byline.
 - All your writes are batched into ONE commit at the end. The order of write_file / delete_file calls doesn't matter for atomicity.
+- The wiki schema (CLAUDE.md), the cluster manifest (wiki/clusters.yml), and the current catalog (index.md) are pre-loaded in this system message. Do NOT call read_file on those — go straight to read_file for inbox files and specific wiki pages you want to inspect or update.
+- Inbox files larger than ${INBOX_TRUNCATE_AT_CHARS} chars are truncated before you see them: frontmatter + first ${INBOX_KEEP_BODY_CHARS} chars of body + (if present) the user's "## My note" section. Synthesize from what you can see; don't try to recover truncated content.
 
-Below is the wiki schema and current catalog as your reference.`;
+Below are the wiki schema, cluster manifest, and current catalog as your reference.`;
 
 export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -120,10 +150,13 @@ export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
     return [...files].sort();
   }
 
-  // Load CLAUDE.md + index.md for the cached system prompt
-  const [claudeMd, indexMd] = await Promise.all([
+  // Load CLAUDE.md + index.md + clusters.yml for the cached system prompt.
+  // Pre-loading clusters.yml saves a tool round-trip on every ingest; the
+  // model otherwise reads it via read_file as instructed by CLAUDE.md.
+  const [claudeMd, indexMd, clustersYml] = await Promise.all([
     readFileFromRepo("CLAUDE.md"),
     readFileFromRepo("index.md"),
+    readFileFromRepo("wiki/clusters.yml"),
   ]);
   if (!claudeMd) {
     return {
@@ -150,6 +183,7 @@ export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
       try {
         const content = await effectiveRead(path);
         if (content === null) return `(file not found: ${path})`;
+        if (path.startsWith("inbox/")) return truncateInboxFile(content);
         return content;
       } catch (err) {
         return `(error reading ${path}: ${(err as Error).message})`;
@@ -232,7 +266,7 @@ export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
       system: [
         {
           type: "text",
-          text: `${SYNTH_SYSTEM_PREAMBLE}\n\n## Schema (CLAUDE.md)\n\n${claudeMd}\n\n## Catalog (index.md)\n\n${indexMd ?? "(empty)"}`,
+          text: `${SYNTH_SYSTEM_PREAMBLE}\n\n## Schema (CLAUDE.md)\n\n${claudeMd}\n\n## Cluster manifest (wiki/clusters.yml)\n\n\`\`\`yaml\n${clustersYml ?? "(empty)"}\n\`\`\`\n\n## Catalog (index.md)\n\n${indexMd ?? "(empty)"}`,
           cache_control: { type: "ephemeral" },
         },
       ],

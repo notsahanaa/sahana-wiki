@@ -29,12 +29,15 @@ export async function handleIngest(args: IngestArgs): Promise<Response> {
     });
   }
 
+  // Pick the oldest file (timestamp-prefixed names sort lexicographically).
+  // One file per call keeps each synth run inside Vercel's 300s ceiling.
+  const oldest = [...inboxFiles].sort()[0];
+  const remainingAfter = inboxFiles.length - 1;
+
   // Hand off to synth in the background; ack now so Slack doesn't time out.
-  // Synthesis can take 30-120s for a few files.
   waitUntil(
     (async () => {
-      const inboxPaths = inboxFiles.map((f) => `inbox/${f}`);
-      const result = await ingestInbox(inboxPaths);
+      const result = await ingestInbox([`inbox/${oldest}`]);
 
       if (result.error) {
         await postToResponseUrl(args.responseUrl, {
@@ -70,6 +73,9 @@ export async function handleIngest(args: IngestArgs): Promise<Response> {
       if (result.commitUrl) {
         lines.push(`*Commit:* <${result.commitUrl}|${result.commitSha?.slice(0, 7)}>`);
       }
+      if (remainingAfter > 0) {
+        lines.push(`*Inbox remaining:* ${remainingAfter} — run \`/wiki-ingest\` again to continue.`);
+      }
       lines.push("");
       lines.push("*Summary:*");
       lines.push(result.summary);
@@ -85,8 +91,11 @@ export async function handleIngest(args: IngestArgs): Promise<Response> {
     })(),
   );
 
+  const ackTail = remainingAfter > 0
+    ? `; *${remainingAfter}* will remain (run \`/wiki-ingest\` again to drain).`
+    : `.`;
   return Response.json({
     response_type: "ephemeral",
-    text: `🧠 Ingesting *${inboxFiles.length}* inbox item${inboxFiles.length === 1 ? "" : "s"}… this takes 30-90 seconds. I'll post the result in this channel when done.`,
+    text: `🧠 Ingesting *1* inbox item (oldest first)${ackTail} This takes 30-90 seconds. I'll post the result in this channel when done.`,
   });
 }
