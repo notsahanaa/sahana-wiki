@@ -3,18 +3,24 @@ import { SourceProvider } from "./SourceContext";
 import { SourcePanel } from "./SourcePanel";
 import { InboxProvider } from "./InboxContext";
 import { InboxModal } from "./InboxModal";
+import { ManageModeProvider } from "./ManageModeContext";
 import { ResponsiveLayout } from "./ResponsiveLayout";
-import { getClusteredTree } from "@/lib/wiki";
+import { getClusterManifest, getClusteredTree } from "@/lib/wiki";
 
 export async function AppShell({ children }: { children: ReactNode }) {
-  const tree = await getClusteredTree();
+  const [tree, manifest] = await Promise.all([
+    getClusteredTree(),
+    getClusterManifest(),
+  ]);
 
   return (
     <SourceProvider>
       <InboxProvider>
-        <ResponsiveLayout tree={tree}>{children}</ResponsiveLayout>
-        <SourcePanel />
-        <InboxModal />
+        <ManageModeProvider manifest={manifest}>
+          <ResponsiveLayout tree={tree}>{children}</ResponsiveLayout>
+          <SourcePanel />
+          <InboxModal />
+        </ManageModeProvider>
       </InboxProvider>
     </SourceProvider>
   );

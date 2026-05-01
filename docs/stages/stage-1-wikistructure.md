@@ -223,3 +223,20 @@ Mid-conversation, the harness started blocking commits/pushes to `main` ("bypass
 - **Cluster reordering UX.** The manifest's order = display order. Editing YAML by hand is fine for 5 clusters, will get tedious at 15+. The brainstorm called out `/wiki-organize` as a Slack-side command for conversational reorganization (option #6 in the original idea pool). Not built; deferred until ergonomics demand it.
 - **Books category.** Empty today. When books arrive, they may want their own clusters (e.g. by topic, by author, by reading status). The data layer already supports per-category clustering — `getClusteredTree()` checks for cluster signal independently per category.
 - **Index.md / clusters.yml drift.** `index.md` is hand-maintained to mirror the manifest. If they drift, `index.md` wins for prose, `clusters.yml` wins for schema. A future lint rule could surface mismatches.
+
+## Follow-up shipped: human cluster UI (2026-04-28)
+
+The "Cluster reordering UX" follow-up is partly addressed. The web sidebar now has a **manage mode** (pencil icon, top-right of sidebar) that exposes the LLM's cluster operations to Sahana directly:
+
+- Multi-select concepts via checkboxes; bulk **Add to cluster** or **Remove from cluster** via popover, **New cluster from selection** via inline form.
+- Echoed (non-primary) entries get a one-click "x" to remove that single (page, cluster) pair.
+- Two new POST routes — `/api/clusters/assign` and `/api/clusters/create` — round-trip frontmatter via `gray-matter` and append entries to `wiki/clusters.yml` via `js-yaml`. Both call a new `revalidateWikiCaches()` from `lib/wiki.ts` so prod reflects writes without a restart, and both append a one-line entry to `log.md` mirroring the LLM's discipline.
+- CLAUDE.md gained a "Human cluster ops" section instructing the librarian to treat human-set `clusters: [...]` entries as authoritative on re-ingest.
+
+What's still deferred:
+- "Set primary" button. Workaround: remove + re-add (the new entry lands at the end), or edit frontmatter directly. The "first entry = primary" rule is unchanged.
+- Cluster rename / delete from the UI (still YAML-edit-only).
+- Drag-and-drop, auto-`index.md` reconciliation, and auto-promotion of a cluster to a `wiki/concepts/clusters/<slug>.md` page.
+- Mobile UX — the toggle works, but multi-select ergonomics are desktop-first since the long-press gesture is already taken by delete.
+
+Trade-off accepted on the manifest writer: `wiki/clusters.yml` is rewritten via `yaml.dump` plus a re-prepended comment header. The original folded-block `description: >` formatting is lost on edit; the file stays readable but uniform.

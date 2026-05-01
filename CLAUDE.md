@@ -71,6 +71,17 @@ When a new source lands in `inbox/` or you (Sahana) say "I just read X, integrat
 7. Append a one-line entry to `log.md`: `2026-04-25 ingested sources/<slug> → updated wiki/concepts/X, wiki/projects/Y`. Include cluster activity when relevant: `... → expanded cluster agentic-coding (added librarian sub-theme)`.
 8. Update `index.md` if new pages were created (mirror cluster groupings).
 
+### Human cluster ops (web sidebar)
+
+Sahana can also drive cluster membership from the web sidebar (pencil icon → "manage" mode → multi-select concepts → add/remove cluster, or "new cluster from selection"). When she does, two things happen automatically:
+
+- The selected concepts' frontmatter `clusters: [...]` arrays are mutated and `updated:` is bumped.
+- A bullet line is appended to `log.md` (e.g. `2026-04-28 human cluster op: added \`tooling\` to 3 pages (concepts/agent-native, ...)`).
+
+What is **not** updated automatically: `index.md`, the manifest `description:` of an existing cluster (only new clusters write to `wiki/clusters.yml`), and any cluster page at `wiki/concepts/clusters/<slug>.md`.
+
+**On the next ingest, treat human-set clusters as authoritative.** Don't silently rewrite or remove existing entries in `clusters: [...]`; only extend them. If a human just created a new cluster (visible in `wiki/clusters.yml` and via `log.md`), reconcile `index.md` to mirror it — that's part of step 8 below — and consider whether the new cluster's `description:` needs sharpening based on the concepts now sitting under it.
+
 ### Query
 
 When Sahana asks "what do my notes say about X?":

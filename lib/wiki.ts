@@ -233,6 +233,104 @@ export async function getClusterManifest(): Promise<ClusterDef[]> {
   return Array.from((await loadClusterManifest()).values());
 }
 
+const CLUSTERS_YML_HEADER = `# Cluster manifest — source of truth for the sidebar's second-level grouping.
+#
+# Order here = display order in the sidebar.
+# Each concept declares its memberships in its own frontmatter (\`clusters: [...]\`),
+# with the FIRST entry being the primary cluster (canonical home).
+#
+# Adding/expanding clusters: see the Ingest contract in CLAUDE.md.
+`;
+
+// Append a new cluster to wiki/clusters.yml. Preserves order of existing
+// entries; appends the new one at the end. Re-prepends the canonical comment
+// header (folded-block descriptions and any prior comments are not preserved).
+// Returns the slug. Throws if the slug already exists or is invalid.
+export async function appendClusterToManifest(input: {
+  slug: string;
+  title: string;
+  description: string;
+}): Promise<string> {
+  const slug = input.slug.trim();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    throw new Error("invalid slug (must be lowercase kebab-case)");
+  }
+  let raw = "";
+  try {
+    raw = await fs.readFile(CLUSTERS_FILE, "utf8");
+  } catch {
+    raw = "";
+  }
+  const parsed = (yaml.load(raw) as RawClusterFile | null) ?? {};
+  const clusters = parsed.clusters && typeof parsed.clusters === "object"
+    ? { ...parsed.clusters }
+    : {};
+  if (slug in clusters) {
+    throw new Error(`cluster "${slug}" already exists`);
+  }
+  clusters[slug] = {
+    title: input.title.trim() || slug,
+    description: input.description.trim(),
+  };
+  const dumped = yaml.dump({ clusters }, { lineWidth: 80, noRefs: true, sortKeys: false });
+  await fs.writeFile(CLUSTERS_FILE, CLUSTERS_YML_HEADER + "\n" + dumped, "utf8");
+  return slug;
+}
+
+// Bust the in-memory caches after a write to wiki/* or wiki/clusters.yml so
+// the next render walks the filesystem fresh. Safe to call in dev (caches
+// are already null there) and required in prod.
+export function revalidateWikiCaches() {
+  cachedPages = null;
+  cachedManifest = null;
+  sourceKindCache.clear();
+}
+
+// Round-trip a page's frontmatter: read, mutate `data`, write back. The
+// markdown body is preserved as-is. Returns the new data shape.
+//
+// Date fields (`created`, `updated`) are normalized to YYYY-MM-DD strings
+// before write. YAML parses unquoted ISO dates into Date objects, which
+// js-yaml would otherwise re-emit as full ISO timestamps and break the
+// existing convention.
+export async function writePageFrontmatter(
+  filePath: string,
+  mutate: (data: Record<string, unknown>) => Record<string, unknown> | void,
+): Promise<Record<string, unknown>> {
+  const raw = await fs.readFile(filePath, "utf8");
+  const parsed = matter(raw);
+  const next = mutate({ ...parsed.data }) ?? parsed.data;
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(next)) {
+    if (v === undefined) continue;
+    clean[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v;
+  }
+  const out = matter.stringify(parsed.content, clean);
+  await fs.writeFile(filePath, out, "utf8");
+  return clean;
+}
+
+// Resolve a page slug array (e.g. ["concepts","agent-native"]) to its absolute
+// .md file path inside wiki/. Returns null if the slug escapes the wiki dir
+// or doesn't exist.
+export async function resolveWikiFilePath(slug: string[]): Promise<string | null> {
+  if (!slug.length) return null;
+  for (const seg of slug) {
+    if (!seg || seg.includes("..") || seg.includes("/") || seg.includes("\\")) {
+      return null;
+    }
+  }
+  const filePath = path.join(WIKI_DIR, ...slug) + ".md";
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(path.resolve(WIKI_DIR) + path.sep)) return null;
+  try {
+    await fs.access(resolved);
+  } catch {
+    return null;
+  }
+  return resolved;
+}
+
 // Returns a per-category tree where each category is a list of cluster groups
 // (in manifest order). Pages with multiple clusters appear under each one;
 // the entry is marked isPrimary=true under their first declared cluster and

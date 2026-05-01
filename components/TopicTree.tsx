@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
   ClusterGroup,
@@ -11,6 +11,8 @@ import type {
   WikiClusteredTree,
   WikiPageMeta,
 } from "@/lib/wiki";
+import { useManageMode } from "./ManageModeContext";
+import { SidebarActionBar } from "./SidebarActionBar";
 
 const CATEGORY_ORDER = ["concepts", "projects", "books"];
 const CATEGORY_LABEL: Record<string, string> = {
@@ -22,6 +24,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 export function TopicTree({ tree }: { tree: WikiClusteredTree }) {
   const pathname = usePathname();
+  const { active: manageActive, toggle: toggleManage } = useManageMode();
   const categories = Object.keys(tree).sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a);
     const bi = CATEGORY_ORDER.indexOf(b);
@@ -32,16 +35,30 @@ export function TopicTree({ tree }: { tree: WikiClusteredTree }) {
   });
 
   return (
-    <nav aria-label="Wiki topics" className="flex flex-col gap-5 px-4 py-6 text-sm">
-      <Link
-        href="/"
-        className={cn(
-          "font-heading text-2xl leading-none text-ink-primary transition-colors",
-          pathname === "/" && "text-ink-primary",
-        )}
-      >
-        sahana-wiki
-      </Link>
+    <nav aria-label="Wiki topics" className="flex min-h-full flex-col gap-5 px-4 py-6 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          href="/"
+          className={cn(
+            "font-heading text-2xl leading-none text-ink-primary transition-colors",
+            pathname === "/" && "text-ink-primary",
+          )}
+        >
+          sahana-wiki
+        </Link>
+        <button
+          type="button"
+          onClick={toggleManage}
+          aria-label={manageActive ? "Exit manage mode" : "Manage clusters"}
+          title={manageActive ? "Exit manage mode" : "Manage clusters"}
+          className={cn(
+            "flex items-center rounded p-1 text-ink-tertiary transition hover:bg-ink-muted/40 hover:text-ink-primary",
+            manageActive && "bg-ink-primary text-bg-default hover:bg-ink-primary hover:text-bg-default",
+          )}
+        >
+          <Pencil className="h-3.5 w-3.5" strokeWidth={2.25} />
+        </button>
+      </div>
 
       <div className="flex flex-col gap-3">
         {categories.map((cat) => (
@@ -53,6 +70,9 @@ export function TopicTree({ tree }: { tree: WikiClusteredTree }) {
           />
         ))}
       </div>
+
+      <div className="mt-auto" />
+      <SidebarActionBar />
     </nav>
   );
 }
@@ -131,6 +151,7 @@ function ClusterBlock({
   const headerTitle = group.cluster?.description || undefined;
   const headerHref = group.cluster?.page?.href;
   const headerActive = headerHref === currentPath;
+  const clusterSlug = group.cluster?.slug ?? null;
 
   return (
     <div>
@@ -177,6 +198,7 @@ function ClusterBlock({
               key={`${group.cluster?.slug ?? "unsorted"}:${entry.page.href}`}
               entry={entry}
               active={currentPath === entry.page.href}
+              clusterSlug={clusterSlug}
             />
           ))}
         </ul>
@@ -199,6 +221,7 @@ function PageList({
           key={entry.page.href}
           entry={entry}
           active={currentPath === entry.page.href}
+          clusterSlug={null}
         />
       ))}
     </ul>
@@ -208,18 +231,25 @@ function PageList({
 function PageRow({
   entry,
   active,
+  clusterSlug,
 }: {
   entry: ClusteredPageEntry;
   active: boolean;
+  clusterSlug: string | null;
 }) {
   const router = useRouter();
+  const manage = useManageMode();
   const [deleting, setDeleting] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [removingEcho, setRemovingEcho] = useState(false);
   const liRef = useRef<HTMLLIElement>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressed = useRef(false);
   const startY = useRef(0);
   const page: WikiPageMeta = entry.page;
+
+  const manageActive = manage.active;
+  const selected = manage.isSelected(page.slug);
 
   async function onDelete(e: React.MouseEvent) {
     e.preventDefault();
@@ -238,6 +268,15 @@ function PageRow({
     router.refresh();
   }
 
+  async function onRemoveEcho(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!clusterSlug) return;
+    setRemovingEcho(true);
+    await manage.removeOne(page.slug, clusterSlug);
+    setRemovingEcho(false);
+  }
+
   function clearPressTimer() {
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
@@ -246,6 +285,7 @@ function PageRow({
   }
 
   function handleTouchStart(e: React.TouchEvent) {
+    if (manageActive) return;
     if (!entry.isPrimary) return;
     startY.current = e.touches[0].clientY;
     longPressed.current = false;
@@ -270,6 +310,12 @@ function PageRow({
   }
 
   function handleLinkClick(e: React.MouseEvent) {
+    if (manageActive) {
+      e.preventDefault();
+      e.stopPropagation();
+      manage.toggleSelected(page.slug);
+      return;
+    }
     if (longPressed.current) {
       e.preventDefault();
       e.stopPropagation();
@@ -292,6 +338,12 @@ function PageRow({
     };
   }, [revealed]);
 
+  // In manage mode, echoes get a one-click remove "x"; primaries get a
+  // checkbox column. The right-hand delete affordance is hidden so the row
+  // doesn't have two destructive actions at once.
+  const showRowDelete = !manageActive && entry.isPrimary;
+  const showEchoRemove = manageActive && !entry.isPrimary && clusterSlug !== null;
+
   return (
     <li ref={liRef} className="group relative">
       <Link
@@ -306,20 +358,35 @@ function PageRow({
         }}
         className={cn(
           "flex items-center gap-1 rounded px-2 py-1 pr-7 leading-snug transition select-none [-webkit-touch-callout:none]",
-          active
+          active && !manageActive
             ? "bg-accent-lavender text-ink-primary"
             : "text-ink-secondary hover:bg-bg-subtle hover:text-ink-primary",
           !entry.isPrimary && "italic",
+          manageActive && selected && "bg-accent-lavender/60 text-ink-primary",
         )}
         title={!entry.isPrimary ? "Echoed from another cluster" : undefined}
       >
-        <ChevronRight
-          className={cn(
-            "h-3 w-3 shrink-0 transition-opacity",
-            active ? "opacity-80" : "opacity-30",
-          )}
-          strokeWidth={2.25}
-        />
+        {manageActive ? (
+          <span
+            aria-hidden
+            className={cn(
+              "flex h-3 w-3 shrink-0 items-center justify-center rounded-sm border transition",
+              selected
+                ? "border-ink-primary bg-ink-primary text-bg-default"
+                : "border-ink-tertiary bg-bg-default",
+            )}
+          >
+            {selected && <span className="text-[8px] leading-none">✓</span>}
+          </span>
+        ) : (
+          <ChevronRight
+            className={cn(
+              "h-3 w-3 shrink-0 transition-opacity",
+              active ? "opacity-80" : "opacity-30",
+            )}
+            strokeWidth={2.25}
+          />
+        )}
         {page.category === "concepts" && (
           <span
             aria-hidden
@@ -334,13 +401,13 @@ function PageRow({
           />
         )}
         <span className="truncate">{page.title}</span>
-        {!entry.isPrimary && (
+        {!entry.isPrimary && !showEchoRemove && (
           <span aria-hidden className="ml-auto pl-1 text-[10px] text-ink-tertiary">
             ↗
           </span>
         )}
       </Link>
-      {entry.isPrimary && (
+      {showRowDelete && (
         <button
           type="button"
           onClick={onDelete}
@@ -355,6 +422,18 @@ function PageRow({
           )}
         >
           <Trash2 className="h-3.5 w-3.5" strokeWidth={2.25} />
+        </button>
+      )}
+      {showEchoRemove && (
+        <button
+          type="button"
+          onClick={onRemoveEcho}
+          disabled={removingEcho || manage.busy}
+          aria-label={`Remove from ${clusterSlug}`}
+          title={`Remove from ${clusterSlug}`}
+          className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-ink-tertiary transition hover:bg-ink-muted/40 hover:text-ink-primary disabled:opacity-50"
+        >
+          <X className="h-3 w-3" strokeWidth={2.5} />
         </button>
       )}
     </li>
