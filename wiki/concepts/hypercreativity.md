@@ -4,7 +4,7 @@ category: concepts
 tags: [paradigms, creativity, agent-native, workflow]
 clusters: [paradigms]
 created: 2026-04-26
-updated: 2026-04-26
+updated: 2026-04-28
 ---
 
 # Hypercreativity
@@ -25,6 +25,14 @@ The framing she gives:
 - **Systems and orchestration.** You're managing parallel work, not doing each piece by hand.
 - **Managerial skills moved into the creator role:** prioritization (what to invest in, what to run parallel, what to kill), and judgement calls (good vs. good-enough vs. needs-more).
 - **Comfort with delegation to agents** — the doing happens elsewhere; you're the conductor.
+
+## The company-scale corollary: 1,000 experiments
+
+The X-axis logic scales to the startup. {{source:levy-weiss-1000-experiments}}*"You are not building a product, or even a company. You are orchestrating 1,000s of simultaneous experiments."*{{/source}} What changes isn't just pace — it's which ideas earn a try.
+
+{{source:levy-weiss-1000-experiments}}When each experiment was expensive, teams gravitated toward safe bets. Cheap agents shift the expected value toward the edges: *"Suddenly it becomes rational — not reckless — to test the strange, ambitious, or non-obvious."*{{/source}} The probabilistic argument is crisp: a 5%-per-experiment signal probability reaches ~40% over ten tries and ~99% over a hundred. {{source:levy-weiss-1000-experiments}}*"The real risk in this new environment is failing to explore widely enough, because the upside now gathers in places that were previously too expensive or time-consuming to reach."*{{/source}}
+
+A seed round becomes a *bank of experiments* — and agents make that bank go 10–20× further. See [[concepts/one-person-studios]] for the traits this demands of the humans who set strategy.
 
 ## The honest cost
 

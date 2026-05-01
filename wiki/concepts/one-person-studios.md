@@ -4,7 +4,7 @@ category: concepts
 tags: [paradigms, agent-native, work, identity]
 clusters: [paradigms]
 created: 2026-04-26
-updated: 2026-04-26
+updated: 2026-04-28
 ---
 
 # One-Person Studios
@@ -35,6 +35,16 @@ The risk: as you delegate more, the output stops feeling like *yours*. Voice, ta
 Sahana's proposed direction: {{source:sahana-paradigms-agent-space-2026-04-12}}*"Perhaps we need to start thinking about building and hiring digital versions of ourselves: clones, not employees. Introspecting and conversing with a `soul.md` or `me.md` might become important."*{{/source}}
 
 This is essentially the [[concepts/folder-is-the-agent]] pattern applied to the person rather than the codebase: enough captured context that an agent acting on your behalf actually carries your taste. A wiki like this one — `sahana-wiki` — is a precursor to that artifact.
+
+## From tools to employees: the mental model shift
+
+NFX frames the same inversion in business terms: {{source:levy-weiss-1000-experiments}}software is no longer a tool — *"labor and software have fused into one entity."*{{/source}} The purchase frame changes: you're not buying a CRM, you're hiring a "sales operations agent" responsible for outcomes. And the headcount compression follows: {{source:levy-weiss-1000-experiments}}*"a 12-person startup starts to feel like a 1,200-person company."*{{/source}}
+
+## What the humans at the center look like
+
+When agents handle execution, the few humans who remain matter more — not as specialists but as orchestrators. {{source:levy-weiss-1000-experiments}}The traits that predict success: **high agency** (no waiting for instructions), **multi-domain fluency** (marketing + operations + engineering simultaneously), **builder's instinct** (bias toward creation, even if "building" means prompting), **comfort with chaos** (agents fail, models drift — adapt), **truth-seeking over status-seeking** (information flows openly), **low ego** (experimentation is failure; separate self from product), **internal locus of control** (everything is your responsibility), **systems intuition** (sensing when a workflow or agent network is off), and **willingness to unlearn** (old intuitions about "what takes time" are now liabilities).{{/source}}
+
+These aren't soft qualities. They're the selection criteria for anyone meant to run at [[concepts/hypercreativity]] scale.
 
 ## Concrete examples in this wiki
 

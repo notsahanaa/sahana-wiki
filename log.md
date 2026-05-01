@@ -12,7 +12,7 @@ Append-only chronological log of ingests, queries, and maintenance.
 
 ## 2026-04-26
 
-- **Stage 2 shipped on Vercel.** Slack capture is live at `https://sahana-wiki.vercel.app/api/slack/commands`. `/wiki-commands`, `/wiki-list`, `/wiki-dive`, `/wiki-add` all working end-to-end. `/wiki-add` writes commits to `inbox/` via the GitHub Contents API. `/wiki-qna` deferred to Stage 4.
+- **Stage 2 shipped on Vercel.** Slack capture is live at `https://sahana-wiki.vercel.app/api/slack/commands`. `/wiki-commands`, `/wiki-list`, `/wiki-dive`, `/wiki-add` all working end-to-end. `/wiki-qna` deferred to Stage 4.
 - **Ingest: 3 Slack-captured inbox files.**
   - `inbox/2026-04-26-0727-...the-folder-is-the-agent-clip.md` — duplicate of existing `sources/klaassen-folder-is-the-agent`. Discarded without becoming a new source.
   - `inbox/2026-04-26-0728-the-agent-space-an-overview-april-note.md` — Sahana's own essay from her *paradigms* newsletter (April 12, 2026). Promoted to `sources/sahana-paradigms-agent-space-2026-04-12`. Created four new concept pages from it: `wiki/concepts/{hypercreativity, one-person-studios, taste-as-skill, super-porous-ecosystem}`. First time the wiki hosts Sahana's own writing as a primary source — `wiki/projects/sahana-wiki` updated to reflect that shift.
@@ -71,3 +71,7 @@ Append-only chronological log of ingests, queries, and maintenance.
 ## 2026-04-27
 
 - **Removed Slack commands `/wiki-commands` and `/wiki-dive`.** Dropped both cases from `app/api/slack/commands/route.ts`, deleted `lib/slack/handlers/commands.ts` and `lib/slack/handlers/dive.ts`, and pruned the dive-only helpers (`findPage`, `findClosestPages`, `slugifyPath`) from `lib/wiki.ts`. Updated the `/wiki-qna` ack and unknown-command fallback to no longer point at `/wiki-commands`. Live surface is now `/wiki-list`, `/wiki-add`, `/wiki-ingest`, `/wiki-inbox` (+ `/wiki-qna` planned).
+
+## 2026-04-28
+
+- **Ingest: Gigi Levy-Weiss / NFX — "1,000 Simultaneous Experiments."** Promoted to `sources/levy-weiss-1000-experiments`. Updated `wiki/concepts/hypercreativity` (added "company-scale corollary" section: probability math for cheap experiments, EV-shifts-to-edges argument, real risk is under-exploring). Updated `wiki/concepts/one-person-studios` (added "from tools to employees" mental model flip, 12-person → 1,200-person compression, and traits list for orchestrators at scale).
