@@ -74,7 +74,7 @@ Workflow per inbox file:
 
 1. Read it (read_file).
 2. If the inbox file contains a "## My note" section, treat that note as the strongest signal in the capture. It tells you which angle the user cares about — let it steer which wiki pages you update, which phrases you highlight, and how you frame the synthesis. The note is first-class analytical input, not body content.
-3. Scout existing wiki pages that might be related (list_directory on wiki/<category>/, read_file on candidates).
+3. Scout existing wiki pages that might be related (list_directory on wiki/<category>/, then read candidates). When fetching 2+ candidate pages, prefer read_files (plural) over multiple sequential read_file calls — it's much faster.
 4. Decide which 1-5 wiki pages to create or update. Be conservative: don't create new categories without strong reason. Match the voice of existing pages — short paragraphs, declarative, generous {{source:slug}} highlights, [[wikilinks]] to neighbors.
 5. Wrap source-grounded phrases in {{source:<slug>}}...{{/source}} where <slug> is the source filename without .md.
 6. Use [[path/topic]] (e.g. [[concepts/agent-native]]) or bare [[Topic Title]] for internal links. The renderer accepts both forms; aliased syntax like [[path|alias]] is NOT supported.
@@ -97,6 +97,14 @@ Constraints:
 
 Below are the wiki schema, cluster manifest, and current catalog as your reference.`;
 
+interface SessionResult {
+  path: string;
+  summary: string;
+  pendingWrites: Map<string, string>;
+  pendingDeletes: Set<string>;
+  error?: string;
+}
+
 export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -118,17 +126,139 @@ export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
     };
   }
 
-  // Pending state — flushed as one commit at end
+  // Load CLAUDE.md + index.md + clusters.yml once, share across parallel
+  // sessions via the cached system prompt.
+  const [claudeMd, indexMd, clustersYml] = await Promise.all([
+    readFileFromRepo("CLAUDE.md"),
+    readFileFromRepo("index.md"),
+    readFileFromRepo("wiki/clusters.yml"),
+  ]);
+  if (!claudeMd) {
+    return {
+      summary: "CLAUDE.md not found at repo root",
+      operations: [],
+      filesWritten: 0,
+      filesDeleted: 0,
+      error: "no-claude-md",
+    };
+  }
+
+  const client = new Anthropic({ apiKey });
+  const systemText = `${SYNTH_SYSTEM_PREAMBLE}\n\n## Schema (CLAUDE.md)\n\n${claudeMd}\n\n## Cluster manifest (wiki/clusters.yml)\n\n\`\`\`yaml\n${clustersYml ?? "(empty)"}\n\`\`\`\n\n## Catalog (index.md)\n\n${indexMd ?? "(empty)"}`;
+
+  // Fan out: one toolRunner session per inbox path, run in parallel.
+  // Each session has its own pending state; we merge into a single commit at
+  // the end. Wall time becomes max(per-file) instead of sum(per-file).
+  const sessions = await Promise.all(
+    inboxPaths.map((path) => runIngestSession({ path, client, systemText })),
+  );
+
+  // Merge pending state across sessions.
+  // - Writes win over deletes on path collisions (writes are the substantive
+  //   output; a delete from a different session is almost certainly stale).
+  // - Last session wins on write/write collisions. Practically only index.md
+  //   and log.md collide; this is acceptable drift, recoverable on next ingest.
+  const mergedWrites = new Map<string, string>();
+  const mergedDeletes = new Set<string>();
+  for (const s of sessions) {
+    for (const [p, c] of s.pendingWrites) {
+      mergedWrites.set(p, c);
+      mergedDeletes.delete(p);
+    }
+    for (const p of s.pendingDeletes) {
+      if (!mergedWrites.has(p)) mergedDeletes.add(p);
+    }
+  }
+
+  const summaryParts = sessions.map((s) =>
+    s.error
+      ? `❌ ${s.path} failed: ${s.error}`
+      : sessions.length === 1
+        ? s.summary
+        : `**${s.path}**\n${s.summary}`,
+  );
+  const summary = summaryParts.join("\n\n---\n\n");
+  const failedCount = sessions.filter((s) => s.error).length;
+
+  // No-op: nothing to commit
+  if (mergedWrites.size === 0 && mergedDeletes.size === 0) {
+    return {
+      summary: `${summary}\n\n_(No changes to commit.)_`,
+      operations: [],
+      filesWritten: 0,
+      filesDeleted: 0,
+      error:
+        failedCount === sessions.length
+          ? `all ${sessions.length} session(s) failed`
+          : undefined,
+    };
+  }
+
+  const changes = [
+    ...[...mergedWrites].map(([path, content]) => ({ path, content })),
+    ...[...mergedDeletes].map((path) => ({ path, content: null })),
+  ];
+
+  try {
+    const commit = await commitTree({
+      message: `wiki-ingest: ${mergedWrites.size} writes, ${mergedDeletes.size} deletes${inboxPaths.length > 1 ? ` (${inboxPaths.length} files)` : ""}`,
+      changes,
+    });
+    return {
+      summary,
+      operations: [
+        ...[...mergedWrites.keys()].map((path) => ({
+          type: "write" as const,
+          path,
+        })),
+        ...[...mergedDeletes].map((path) => ({
+          type: "delete" as const,
+          path,
+        })),
+      ],
+      commitSha: commit.commitSha,
+      commitUrl: commit.htmlUrl,
+      filesWritten: commit.filesWritten,
+      filesDeleted: commit.filesDeleted,
+      error:
+        failedCount > 0
+          ? `${failedCount}/${sessions.length} session(s) failed; committed the rest`
+          : undefined,
+    };
+  } catch (err) {
+    const detail =
+      err instanceof GitHubCommitError
+        ? `${err.message} · ${err.responseBody}`
+        : (err as Error).message;
+    return {
+      summary,
+      operations: [],
+      filesWritten: 0,
+      filesDeleted: 0,
+      error: `commit failed: ${detail}`,
+    };
+  }
+}
+
+async function runIngestSession({
+  path: inboxPath,
+  client,
+  systemText,
+}: {
+  path: string;
+  client: Anthropic;
+  systemText: string;
+}): Promise<SessionResult> {
   const pendingWrites = new Map<string, string>();
   const pendingDeletes = new Set<string>();
   let opCount = 0;
 
   // Reads consult pending state first (so the LLM can read back what it just wrote)
-  async function effectiveRead(path: string): Promise<string | null> {
-    if (pendingDeletes.has(path)) return null;
-    const pending = pendingWrites.get(path);
+  async function effectiveRead(p: string): Promise<string | null> {
+    if (pendingDeletes.has(p)) return null;
+    const pending = pendingWrites.get(p);
     if (pending !== undefined) return pending;
-    return readFileFromRepo(path);
+    return readFileFromRepo(p);
   }
 
   async function effectiveList(dir: string): Promise<string[]> {
@@ -150,27 +280,7 @@ export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
     return [...files].sort();
   }
 
-  // Load CLAUDE.md + index.md + clusters.yml for the cached system prompt.
-  // Pre-loading clusters.yml saves a tool round-trip on every ingest; the
-  // model otherwise reads it via read_file as instructed by CLAUDE.md.
-  const [claudeMd, indexMd, clustersYml] = await Promise.all([
-    readFileFromRepo("CLAUDE.md"),
-    readFileFromRepo("index.md"),
-    readFileFromRepo("wiki/clusters.yml"),
-  ]);
-  if (!claudeMd) {
-    return {
-      summary: "CLAUDE.md not found at repo root",
-      operations: [],
-      filesWritten: 0,
-      filesDeleted: 0,
-      error: "no-claude-md",
-    };
-  }
-
-  const client = new Anthropic({ apiKey });
-
-  // ---------- Tools ----------
+  // ---------- Tools (closures over per-session pending state) ----------
 
   const readFileTool = betaZodTool({
     name: "read_file",
@@ -188,6 +298,36 @@ export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
       } catch (err) {
         return `(error reading ${path}: ${(err as Error).message})`;
       }
+    },
+  });
+
+  const readFilesTool = betaZodTool({
+    name: "read_files",
+    description:
+      "Read multiple files in one call. Use this when scouting 2+ candidate wiki pages — much faster than sequential read_file calls. Returns each file as '## <path>\\n<contents>' joined by '---' separators.",
+    inputSchema: z.object({
+      paths: z
+        .array(z.string())
+        .min(1)
+        .max(20)
+        .describe("Repo-relative paths (1-20)"),
+    }),
+    run: async ({ paths }) => {
+      const results = await Promise.all(
+        paths.map(async (p) => {
+          try {
+            const content = await effectiveRead(p);
+            if (content === null) return `## ${p}\n(file not found)`;
+            const body = p.startsWith("inbox/")
+              ? truncateInboxFile(content)
+              : content;
+            return `## ${p}\n${body}`;
+          } catch (err) {
+            return `## ${p}\n(error: ${(err as Error).message})`;
+          }
+        }),
+      );
+      return results.join("\n\n---\n\n");
     },
   });
 
@@ -249,41 +389,40 @@ export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
     },
   });
 
-  // ---------- Run the agentic loop ----------
-
-  const userMessage =
-    inboxPaths.length === 1
-      ? `Ingest this inbox file:\n- ${inboxPaths[0]}`
-      : `Ingest these ${inboxPaths.length} inbox files:\n${inboxPaths.map((p) => `- ${p}`).join("\n")}`;
-
   let finalMessage: Anthropic.Beta.BetaMessage;
   try {
     finalMessage = await client.beta.messages.toolRunner({
       model: "claude-sonnet-4-6",
       max_tokens: 16000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "high" },
+      output_config: { effort: "low" },
       system: [
         {
           type: "text",
-          text: `${SYNTH_SYSTEM_PREAMBLE}\n\n## Schema (CLAUDE.md)\n\n${claudeMd}\n\n## Cluster manifest (wiki/clusters.yml)\n\n\`\`\`yaml\n${clustersYml ?? "(empty)"}\n\`\`\`\n\n## Catalog (index.md)\n\n${indexMd ?? "(empty)"}`,
+          text: systemText,
           cache_control: { type: "ephemeral" },
         },
       ],
-      tools: [readFileTool, listDirectoryTool, writeFileTool, deleteFileTool],
-      messages: [{ role: "user", content: userMessage }],
+      tools: [
+        readFileTool,
+        readFilesTool,
+        listDirectoryTool,
+        writeFileTool,
+        deleteFileTool,
+      ],
+      messages: [
+        { role: "user", content: `Ingest this inbox file:\n- ${inboxPath}` },
+      ],
     });
   } catch (err) {
     return {
-      summary: `Synthesis failed: ${(err as Error).message}`,
-      operations: [],
-      filesWritten: 0,
-      filesDeleted: 0,
+      path: inboxPath,
+      summary: "",
+      pendingWrites: new Map(),
+      pendingDeletes: new Set(),
       error: (err as Error).message,
     };
   }
 
-  // Extract human-readable summary from the final assistant text
   const summary =
     finalMessage.content
       .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
@@ -291,55 +430,5 @@ export async function ingestInbox(inboxPaths: string[]): Promise<IngestResult> {
       .join("\n")
       .trim() || "(no summary returned by the model)";
 
-  // No-op: nothing to commit
-  if (pendingWrites.size === 0 && pendingDeletes.size === 0) {
-    return {
-      summary: `${summary}\n\n_(No changes to commit.)_`,
-      operations: [],
-      filesWritten: 0,
-      filesDeleted: 0,
-    };
-  }
-
-  // Apply all pending operations as one atomic commit
-  const changes = [
-    ...[...pendingWrites].map(([path, content]) => ({ path, content })),
-    ...[...pendingDeletes].map((path) => ({ path, content: null })),
-  ];
-
-  try {
-    const commit = await commitTree({
-      message: `wiki-ingest: ${pendingWrites.size} writes, ${pendingDeletes.size} deletes`,
-      changes,
-    });
-    return {
-      summary,
-      operations: [
-        ...[...pendingWrites.keys()].map((path) => ({
-          type: "write" as const,
-          path,
-        })),
-        ...[...pendingDeletes].map((path) => ({
-          type: "delete" as const,
-          path,
-        })),
-      ],
-      commitSha: commit.commitSha,
-      commitUrl: commit.htmlUrl,
-      filesWritten: commit.filesWritten,
-      filesDeleted: commit.filesDeleted,
-    };
-  } catch (err) {
-    const detail =
-      err instanceof GitHubCommitError
-        ? `${err.message} · ${err.responseBody}`
-        : (err as Error).message;
-    return {
-      summary,
-      operations: [],
-      filesWritten: 0,
-      filesDeleted: 0,
-      error: `commit failed: ${detail}`,
-    };
-  }
+  return { path: inboxPath, summary, pendingWrites, pendingDeletes };
 }
