@@ -26,6 +26,25 @@ export interface IngestFailure {
 
 export type IngestResult = IngestSuccess | IngestFailure;
 
+export type InboxView = "list" | "new";
+
+export type CapturePayload =
+  | { kind: "url"; url: string; note?: string }
+  | { kind: "text"; text: string };
+
+export interface CaptureSuccess {
+  ok: true;
+  filename: string;
+  summary: string;
+}
+
+export interface CaptureFailure {
+  ok: false;
+  error: string;
+}
+
+export type CaptureResult = CaptureSuccess | CaptureFailure;
+
 interface InboxContextValue {
   count: number;
   items: InboxItem[] | null;
@@ -33,6 +52,11 @@ interface InboxContextValue {
   modalOpen: boolean;
   openModal: () => void;
   closeModal: () => void;
+  view: InboxView;
+  openNewSource: () => void;
+  closeNewSource: () => void;
+  capturing: boolean;
+  addSource: (payload: CapturePayload) => Promise<CaptureResult>;
   ingesting: boolean;
   ingestResult: IngestResult | null;
   ingest: () => void;
@@ -47,6 +71,8 @@ export function InboxProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<InboxItem[] | null>(null);
   const [loadingItems, setLoadingItems] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [view, setView] = useState<InboxView>("list");
+  const [capturing, setCapturing] = useState(false);
   const [ingesting, setIngesting] = useState(false);
   const [ingestResult, setIngestResult] = useState<IngestResult | null>(null);
   const [deletingFilenames, setDeletingFilenames] = useState<Set<string>>(
@@ -67,11 +93,9 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const openModal = useCallback(() => {
-    setModalOpen(true);
-    setIngestResult(null);
+  const refreshItems = useCallback(() => {
     setLoadingItems(true);
-    fetch("/api/inbox")
+    return fetch("/api/inbox")
       .then((r) => r.json())
       .then((data: { items?: InboxItem[] }) => {
         setItems(data.items ?? []);
@@ -81,7 +105,52 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoadingItems(false));
   }, []);
 
+  const openModal = useCallback(() => {
+    setModalOpen(true);
+    setView("list");
+    setIngestResult(null);
+    refreshItems();
+  }, [refreshItems]);
+
   const closeModal = useCallback(() => setModalOpen(false), []);
+
+  const openNewSource = useCallback(() => setView("new"), []);
+  const closeNewSource = useCallback(() => setView("list"), []);
+
+  const addSource = useCallback(
+    async (payload: CapturePayload): Promise<CaptureResult> => {
+      setCapturing(true);
+      try {
+        const res = await fetch("/api/inbox", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          filename?: string;
+          summary?: string;
+          error?: string;
+        };
+        if (!res.ok || !data.ok || !data.filename) {
+          return { ok: false, error: data.error ?? `Capture failed (${res.status})` };
+        }
+        // Refresh list and switch back to it so the new item is visible.
+        await refreshItems();
+        setView("list");
+        return {
+          ok: true,
+          filename: data.filename,
+          summary: data.summary ?? "",
+        };
+      } catch (err) {
+        return { ok: false, error: (err as Error).message || "Network error" };
+      } finally {
+        setCapturing(false);
+      }
+    },
+    [refreshItems],
+  );
 
   const deleteItem = useCallback(
     async (filename: string): Promise<boolean> => {
@@ -186,6 +255,11 @@ export function InboxProvider({ children }: { children: ReactNode }) {
         modalOpen,
         openModal,
         closeModal,
+        view,
+        openNewSource,
+        closeNewSource,
+        capturing,
+        addSource,
         ingesting,
         ingestResult,
         ingest,
