@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  ExternalLink,
-  Loader2,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ExternalLink, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InboxItem } from "@/app/api/inbox/route";
 import { useInbox } from "./InboxContext";
@@ -63,47 +56,55 @@ export function InboxModal() {
         )}
       >
         <header className="flex items-center justify-between gap-2 border-b border-ink-muted px-4 py-3">
-          <div className="flex items-center gap-2">
-            {isNewView && (
+          <nav
+            aria-label="Inbox breadcrumb"
+            className="flex items-center gap-1.5 font-heading text-base uppercase tracking-wider"
+          >
+            {isNewView ? (
+              <>
+                <button
+                  type="button"
+                  onClick={closeNewSource}
+                  className="text-ink-tertiary transition hover:text-ink-primary"
+                >
+                  Inbox
+                </button>
+                <span aria-hidden className="text-ink-tertiary/60">
+                  ›
+                </span>
+                <span className="text-ink-tertiary">New source</span>
+              </>
+            ) : (
+              <span className="text-ink-tertiary">Inbox</span>
+            )}
+          </nav>
+          <div className="flex items-center gap-1">
+            {!isNewView && (
               <button
                 type="button"
-                onClick={closeNewSource}
-                aria-label="Back to inbox"
-                className="rounded p-1 text-ink-secondary transition hover:bg-ink-muted/40 hover:text-ink-primary"
+                onClick={openNewSource}
+                aria-label="Add a new source"
+                className="flex items-center gap-1.5 rounded px-2 py-1 text-sm font-medium text-ink-primary transition hover:bg-ink-muted/30"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <Plus className="h-4 w-4" strokeWidth={2.25} />
+                New source
               </button>
             )}
-            <span className="font-heading text-base uppercase tracking-wider text-ink-tertiary">
-              {isNewView ? "New source" : "Inbox"}
-            </span>
+            <button
+              type="button"
+              onClick={closeModal}
+              aria-label="Close inbox"
+              className="rounded p-1 text-ink-secondary transition hover:bg-ink-muted/40 hover:text-ink-primary"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={closeModal}
-            aria-label="Close inbox"
-            className="rounded p-1 text-ink-secondary transition hover:bg-ink-muted/40 hover:text-ink-primary"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </header>
 
         {isNewView ? (
           <NewSourceForm />
         ) : (
           <>
-            <div className="flex flex-col gap-2 border-b border-ink-muted px-2 py-2">
-              <button
-                type="button"
-                onClick={openNewSource}
-                aria-label="Add a new source"
-                className="flex items-center gap-2 rounded px-3 py-2 text-sm font-medium text-ink-primary transition hover:bg-ink-muted/30"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.25} />
-                New source
-              </button>
-            </div>
-
             <div className="flex-1 overflow-y-auto px-2 py-2">
               {loadingItems && items === null && (
                 <p className="px-3 py-6 text-sm text-ink-tertiary">Loading…</p>
