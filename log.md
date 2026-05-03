@@ -108,3 +108,4 @@ Append-only chronological log of ingests, queries, and maintenance.
 - 2026-05-03 human cluster op: moved 1 page → `ai-taste` (concepts/games-as-curriculum)
 - 2026-05-03 human cluster op: moved 1 page → `ai-taste` (concepts/taste-as-skill)
 - 2026-05-03 human cluster op: moved 1 page → `agentic-coding` (concepts/generative-ui)
+- 2026-05-03 human cluster op: moved 1 page → `agentic-coding` (concepts/agent-native-office)

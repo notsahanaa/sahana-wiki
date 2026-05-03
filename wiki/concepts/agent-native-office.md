@@ -1,10 +1,15 @@
 ---
 title: Agent-Native Office
 category: concepts
-tags: [agent-ops, internal-agents, mcp, observability, multiplayer]
-cluster: paradigms
-created: 2026-05-03
-updated: 2026-05-03
+tags:
+  - agent-ops
+  - internal-agents
+  - mcp
+  - observability
+  - multiplayer
+cluster: agentic-coding
+created: '2026-05-03'
+updated: '2026-05-03'
 ---
 
 # Agent-Native Office
