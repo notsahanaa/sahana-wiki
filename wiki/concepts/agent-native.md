@@ -4,7 +4,7 @@ category: concepts
 tags: [agent-native, architecture, claude-code]
 cluster: agentic-coding
 created: 2026-04-25
-updated: 2026-04-26
+updated: 2026-05-03
 ---
 
 # Agent-Native
@@ -40,6 +40,8 @@ The vocabulary that shows up across the Every pieces:
 {{source:every-agent-native-guide}}Files beat databases for many use cases — agents already know file ops, content stays inspectable and portable, sync works naturally, and the structure is self-documenting.{{/source}} Monologue ships this in production with a {{source:parrott-four-apps}}folder-based filesystem instead of a traditional database{{/source}}.
 
 This is also why [[concepts/llm-as-librarian]] works: the wiki *is* the interface.
+
+The pattern extends beyond single-agent loops: {{source:mesa-versioned-filesystem-resource}}a versioned, mountable filesystem lets an entire agent fleet share memory — files branched per agent, parallel swarms forking workspaces and merging the best result, rollback at any checkpoint{{/source}}. Files as permanent memory, not just transient scratchpad.
 
 ## Trade-offs (honest)
 
