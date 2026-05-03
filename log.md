@@ -1,3 +1,6 @@
+---
+(see file below for full log)
+---
 # Wiki Log
 
 Append-only chronological log of ingests, queries, and maintenance.
@@ -92,3 +95,4 @@ Append-only chronological log of ingests, queries, and maintenance.
 - **Ingest: Zencoder resource.** Promoted `inbox/2026-05-03-0026-zencoder-the-ai-coding-agent-resource.md` → `sources/zencoder-the-ai-coding-agent-resource.md`. Created new bucket page `wiki/resources/agentic-coding-tools.md`. Updated `index.md` to add Resources section.
 - **Ingest: Orthogonal resource.** Promoted `inbox/2026-05-03-0031-orthogonal-trusted-skills-and-apis-resource.md` → `sources/orthogonal-trusted-skills-and-apis-resource.md`. Added to `wiki/resources/agentic-coding-tools.md` (newest-first).
 - **Ingest: Mesa — versioned filesystem for AI agents.** Promoted `inbox/2026-05-03-0032-the-versioned-filesystem-for-ai-agents-mesa-clip.md` → `sources/mesa-versioned-filesystem-resource.md`. Added to `wiki/resources/agentic-coding-tools.md` under new "Filesystems & Agent Memory" section. Updated `wiki/concepts/agent-native` to highlight Mesa in the "files as universal interface" section (files as permanent fleet memory, not just transient scratchpad).
+- **Ingest: Generative UI — 3 types of gen UI (notes).** Promoted `inbox/2026-05-03-0124-generative-ui-3-types-of-gen-note.md` → `sources/2026-05-03-0124-generative-ui-3-types-of-gen-note.md`. Created new concept page `wiki/concepts/generative-ui` (cluster: paradigms) covering the controlled/declarative/open taxonomy, CLUF, and enablement-stack future directions. Added to `index.md` under AGENTIC FUTURES.

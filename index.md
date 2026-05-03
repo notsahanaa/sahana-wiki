@@ -15,17 +15,26 @@ How software gets built when AI agents are first-class — Claude Code patterns,
 
 - [[concepts/agent-native]] — software architected with agents as first-class citizens (parity, granularity, composability).
 - [[concepts/compound-engineering]] — Klaassen's methodology stacking folder-agents into reusable scaffolds.
-- [[concepts/folder-is-the-agent]] — Klaassen's pattern: a well-structured folder + CLAUDE.md is itself an effective agent.
 - [[concepts/llm-as-librarian]] — the PKM pattern: LLM agent maintains a folder of markdown for a human curator.
 
-### Agent-Native Paradigms
+### Agentic AI Parts
+
+- [[concepts/folder-is-the-agent]] — Klaassen's pattern: a well-structured folder + CLAUDE.md is itself an effective agent.
+
+### AI Taste Training
+
+- [[concepts/taste-as-skill]] — when everyone can build, taste becomes the differentiator; voice vs. style; encoding taste in machine-readable form.
+- [[concepts/ai-autopilot]] — fluency = truth: polished AI output bypasses cognitive review. The negative-space of taste-as-skill.
+- [[concepts/games-as-curriculum]] — Duffy's claim: games are training environments; gameplay capability transfers across domains (Diplomacy → customer support).
+
+### AGENTIC FUTURES
 
 New shapes of creating, working, and living that the agent stack makes possible — solo studios, parallel hypercreativity, taste as the differentiator, products as composable atoms.
 
 - [[concepts/hypercreativity]] — when one person runs many parallel build/think/publish loops via agents; X-axis activity replacing Y-axis flow.
 - [[concepts/one-person-studios]] — the individual at the center of a web of replaceable tools, instead of vice versa; clones-not-employees, `soul.md`.
 - [[concepts/super-porous-ecosystem]] — products as physically-composed atoms (prompts, tools, skills, MCPs, agents) that are swappable without breaking. *Also clusters under Moats.*
-- [[concepts/taste-as-skill]] — when everyone can build, taste becomes the differentiator; voice vs. style; encoding taste in machine-readable form.
+- [[concepts/generative-ui]] — three-type taxonomy of gen UI (controlled, declarative, open); CLUF and enablement stack as future directions.
 
 ### Moats & Defensibility
 
@@ -39,14 +48,13 @@ Where durable advantage collects when the model layer commoditizes — boundarie
 
 Failure modes of the agent-native era — output that feels reviewed but isn't, work that consumes the personal time it was meant to free.
 
-- [[concepts/ai-autopilot]] — fluency = truth: polished AI output bypasses cognitive review. The negative-space of taste-as-skill.
 - [[concepts/ai-overwork]] — the AI loop has no built-in stopping point; variable-ratio reinforcement + FOBO produce compulsion. Dark mirror of hypercreativity.
 
 ### AI Training & Capability
 
 How AI gets good — curricula, transfer learning, the substrates that produce reasoning rather than pattern-matching.
 
-- [[concepts/games-as-curriculum]] — Duffy's claim: games are training environments; gameplay capability transfers across domains (Diplomacy → customer support).
+*(see AI Taste Training above for games-as-curriculum)*
 
 ## Projects
 

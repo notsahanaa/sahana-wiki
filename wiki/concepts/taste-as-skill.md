@@ -15,6 +15,8 @@ cluster: paradigms
 
 A claim from Sahana's *paradigms* essay (see [[projects/sahana-wiki]]): when everyone can build, **taste** becomes the differentiator. {{source:sahana-paradigms-agent-space-2026-04-12}}*"As everyone starts to build, 'taste' has become the new skill gap. The pop-culture references, movies tv shows and video games you geeked over, history and art classes in highschool, little personal quirks, albums and lyrics, and nostalgic trends suddenly make you a hot cake."*{{/source}}
 
+This tracks with field observation: at AI Dev Con 2026, taste was named one of the five most important human characteristics in an AI-saturated future — {{source:ai-dev-con-2026-observations}}*"Is something good or not. This takes looking at a lot of patterns and developing judgement."*{{/source}} It sits alongside tinkering, critical thinking, prioritization, and perspective — all human-judgment capacities that models can't fully substitute.
+
 ## Builder as artist
 
 The role expansion she observes: builders are taking on artist responsibilities. {{source:sahana-paradigms-agent-space-2026-04-12}}*"They are asking questions about aesthetics, fonts and animations, y2k and glitches. They are bringing back stories and histories from the archives of the internet to narrate with their products. Many products and websites have an almost rebellious angle to them; a setting, a persona, an experience that makes you feel like you belong to a certain ideology or cult."*{{/source}}

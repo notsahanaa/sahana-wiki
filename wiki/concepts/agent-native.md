@@ -43,6 +43,20 @@ This is also why [[concepts/llm-as-librarian]] works: the wiki *is* the interfac
 
 The pattern extends beyond single-agent loops: {{source:mesa-versioned-filesystem-resource}}a versioned, mountable filesystem lets an entire agent fleet share memory — files branched per agent, parallel swarms forking workspaces and merging the best result, rollback at any checkpoint{{/source}}. Files as permanent memory, not just transient scratchpad.
 
+## The building blocks of agentic products
+
+From AI Dev Con 2026 field observations — a practitioner decomposition of what an agentic product actually assembles:
+
+- **Agentic blocks:** {{source:ai-dev-con-2026-observations}}LLM, RAG, agentic workflows, evals, error analysis, memory, context{{/source}}
+- **Non-agentic blocks:** {{source:ai-dev-con-2026-observations}}UI, auth, DB{{/source}}
+- **Prod blocks:** {{source:ai-dev-con-2026-observations}}user empathy, rapid prototyping{{/source}}
+
+The distinction is useful: the "agentic" layer is where architecture decisions compound; the non-agentic layer is largely undifferentiated infrastructure; the prod layer is the human judgment that glues them together.
+
+## The second wave: reliability over possibility
+
+{{source:ai-dev-con-2026-observations}}2025 (the first wave) was about *what is possible*. 2026 is about *what is reliable and secure at scale.*{{/source}} Three pressures define that shift: regulatory (data residency), latency (fraud detection, real-time use cases), and data gravity (moving siloed data to one place). The architecture decisions that were optional in the exploration phase become load-bearing in production.
+
 ## Trade-offs (honest)
 
 - **Speed.** Slower than deterministic code due to reasoning overhead.
