@@ -4,39 +4,36 @@ import {
   createContext,
   useCallback,
   useContext,
-  useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import type { ClusterDef } from "@/lib/wiki";
 
-// Selection key = page slug joined by "/" (e.g. "concepts/agent-native").
-// We carry the slug array in the value so the API call doesn't have to split.
-type SelectionMap = Record<string, string[]>;
-
 interface ManageModeValue {
   active: boolean;
-  setActive: (v: boolean) => void;
   toggle: () => void;
-  selection: SelectionMap;
-  selectedCount: number;
-  isSelected: (slug: string[]) => boolean;
-  toggleSelected: (slug: string[]) => void;
-  clear: () => void;
   manifest: ClusterDef[];
   busy: boolean;
   error: string | null;
-  // Actions
-  addToCluster: (clusterSlug: string) => Promise<boolean>;
-  removeFromCluster: (clusterSlug: string) => Promise<boolean>;
-  // Bulk-removes a single (page, cluster) pair — used by the echo "x" button.
-  removeOne: (slug: string[], clusterSlug: string) => Promise<boolean>;
+  // Move a single page into a cluster (or null = Unsorted). Used by drag-drop.
+  setPageCluster: (
+    pageSlug: string[],
+    clusterSlug: string | null,
+  ) => Promise<boolean>;
+  // Rename an existing cluster's display title.
+  renameCluster: (slug: string, title: string) => Promise<boolean>;
+  // Append a new cluster to the manifest.
   createCluster: (input: {
     slug: string;
     title: string;
-    description: string;
+    description?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
+  // Replace the manifest's cluster order. Set must match existing slugs.
+  reorderClusters: (order: string[]) => Promise<boolean>;
+  // Drop a cluster from the manifest. Pages that pointed at it lose their
+  // `cluster:` and slide into Unsorted on the next render.
+  deleteCluster: (slug: string) => Promise<boolean>;
 }
 
 const Ctx = createContext<ManageModeValue | null>(null);
@@ -50,53 +47,23 @@ export function ManageModeProvider({
 }) {
   const router = useRouter();
   const [active, setActive] = useState(false);
-  const [selection, setSelection] = useState<SelectionMap>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const toggle = useCallback(() => {
-    setActive((v) => {
-      if (v) setSelection({});
-      return !v;
-    });
+    setActive((v) => !v);
     setError(null);
   }, []);
 
-  const setActiveExplicit = useCallback((v: boolean) => {
-    setActive(v);
-    if (!v) setSelection({});
-    setError(null);
-  }, []);
-
-  const isSelected = useCallback(
-    (slug: string[]) => selection[slug.join("/")] !== undefined,
-    [selection],
-  );
-
-  const toggleSelected = useCallback((slug: string[]) => {
-    const key = slug.join("/");
-    setSelection((prev) => {
-      const next = { ...prev };
-      if (next[key]) delete next[key];
-      else next[key] = slug;
-      return next;
-    });
-  }, []);
-
-  const clear = useCallback(() => setSelection({}), []);
-
-  const selectedCount = Object.keys(selection).length;
-  const selectedSlugs = useMemo(() => Object.values(selection), [selection]);
-
-  const callAssign = useCallback(
-    async (clusterSlug: string, mode: "add" | "remove") => {
+  const setPageCluster = useCallback(
+    async (pageSlug: string[], clusterSlug: string | null) => {
       setBusy(true);
       setError(null);
       try {
         const res = await fetch("/api/clusters/assign", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ pageSlugs: selectedSlugs, clusterSlug, mode }),
+          body: JSON.stringify({ pageSlugs: [pageSlug], clusterSlug }),
         });
         if (!res.ok) {
           const text = await res.text();
@@ -112,40 +79,18 @@ export function ManageModeProvider({
         setBusy(false);
       }
     },
-    [router, selectedSlugs],
+    [router],
   );
 
-  const addToCluster = useCallback(
-    async (clusterSlug: string) => {
-      const ok = await callAssign(clusterSlug, "add");
-      if (ok) clear();
-      return ok;
-    },
-    [callAssign, clear],
-  );
-
-  const removeFromCluster = useCallback(
-    async (clusterSlug: string) => {
-      const ok = await callAssign(clusterSlug, "remove");
-      if (ok) clear();
-      return ok;
-    },
-    [callAssign, clear],
-  );
-
-  const removeOne = useCallback(
-    async (slug: string[], clusterSlug: string) => {
+  const renameCluster = useCallback(
+    async (slug: string, title: string) => {
       setBusy(true);
       setError(null);
       try {
-        const res = await fetch("/api/clusters/assign", {
+        const res = await fetch("/api/clusters/rename", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            pageSlugs: [slug],
-            clusterSlug,
-            mode: "remove",
-          }),
+          body: JSON.stringify({ slug, title }),
         });
         if (!res.ok) {
           const text = await res.text();
@@ -165,14 +110,14 @@ export function ManageModeProvider({
   );
 
   const createCluster = useCallback(
-    async (input: { slug: string; title: string; description: string }) => {
+    async (input: { slug: string; title: string; description?: string }) => {
       setBusy(true);
       setError(null);
       try {
         const res = await fetch("/api/clusters/create", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ ...input, pageSlugs: selectedSlugs }),
+          body: JSON.stringify(input),
         });
         if (!res.ok) {
           let message = `request failed (${res.status})`;
@@ -185,7 +130,6 @@ export function ManageModeProvider({
           setError(message);
           return { ok: false as const, error: message };
         }
-        clear();
         router.refresh();
         return { ok: true as const };
       } catch (err) {
@@ -196,25 +140,74 @@ export function ManageModeProvider({
         setBusy(false);
       }
     },
-    [clear, router, selectedSlugs],
+    [router],
+  );
+
+  const reorderClusters = useCallback(
+    async (order: string[]) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/clusters/reorder", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ order }),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          setError(text || `request failed (${res.status})`);
+          return false;
+        }
+        router.refresh();
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "network error");
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [router],
+  );
+
+  const deleteCluster = useCallback(
+    async (slug: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/clusters/delete", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ slug }),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          setError(text || `request failed (${res.status})`);
+          return false;
+        }
+        router.refresh();
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "network error");
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [router],
   );
 
   const value: ManageModeValue = {
     active,
-    setActive: setActiveExplicit,
     toggle,
-    selection,
-    selectedCount,
-    isSelected,
-    toggleSelected,
-    clear,
     manifest,
     busy,
     error,
-    addToCluster,
-    removeFromCluster,
-    removeOne,
+    setPageCluster,
+    renameCluster,
     createCluster,
+    reorderClusters,
+    deleteCluster,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

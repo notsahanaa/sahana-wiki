@@ -2,7 +2,7 @@
 title: Super-Porous Ecosystem
 category: concepts
 tags: [paradigms, agent-native, ecosystem, mcp]
-clusters: [paradigms, moats]
+cluster: paradigms
 created: 2026-04-26
 updated: 2026-04-26
 ---

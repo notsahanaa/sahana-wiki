@@ -25,7 +25,7 @@ export default async function Home() {
           <Link
             key={page.href}
             href={page.href}
-            className="group flex items-baseline justify-between gap-4 border-b border-ink-muted py-3 transition hover:bg-bg-subtle"
+            className="group flex items-baseline justify-between gap-4 border-b border-ink-muted py-3 pr-2 transition hover:bg-bg-subtle"
           >
             <span className="flex items-center gap-2 text-base text-ink-primary">
               <ChevronRight

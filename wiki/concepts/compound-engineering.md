@@ -2,7 +2,7 @@
 title: Compound Engineering
 category: concepts
 tags: [agent-native, methodology, claude-code]
-clusters: [agentic-coding]
+cluster: agentic-coding
 created: 2026-04-25
 updated: 2026-04-25
 ---

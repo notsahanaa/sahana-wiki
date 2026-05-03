@@ -3,6 +3,7 @@ import path from "node:path";
 import { listInboxEntries, type InboxEntry } from "@/lib/inbox";
 import { commitFile, GitHubCommitError } from "@/lib/github";
 import {
+  buildResourceCapture,
   buildTextCapture,
   buildUrlCapture,
   type BuiltCapture,
@@ -43,7 +44,13 @@ interface TextPayload {
   text: string;
 }
 
-type CapturePayload = UrlPayload | TextPayload;
+interface ResourcePayload {
+  kind: "resource";
+  url: string;
+  caption: string;
+}
+
+type CapturePayload = UrlPayload | TextPayload | ResourcePayload;
 
 function isUrlPayload(p: unknown): p is UrlPayload {
   return (
@@ -63,6 +70,16 @@ function isTextPayload(p: unknown): p is TextPayload {
   );
 }
 
+function isResourcePayload(p: unknown): p is ResourcePayload {
+  return (
+    typeof p === "object" &&
+    p !== null &&
+    (p as { kind?: unknown }).kind === "resource" &&
+    typeof (p as { url?: unknown }).url === "string" &&
+    typeof (p as { caption?: unknown }).caption === "string"
+  );
+}
+
 export async function POST(request: Request) {
   let payload: CapturePayload;
   try {
@@ -71,9 +88,14 @@ export async function POST(request: Request) {
       payload = body;
     } else if (isTextPayload(body)) {
       payload = body;
+    } else if (isResourcePayload(body)) {
+      payload = body;
     } else {
       return Response.json(
-        { error: "invalid payload — expected { kind: 'url', url, note? } or { kind: 'text', text }" },
+        {
+          error:
+            "invalid payload — expected { kind: 'url', url, note? }, { kind: 'text', text }, or { kind: 'resource', url, caption }",
+        },
         { status: 400 },
       );
     }
@@ -93,6 +115,22 @@ export async function POST(request: Request) {
         );
       }
       capture = await buildUrlCapture(url, payload.note?.trim() || undefined, ctx);
+    } else if (payload.kind === "resource") {
+      const url = payload.url.trim();
+      const caption = payload.caption.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        return Response.json(
+          { error: "URL must start with http:// or https://" },
+          { status: 400 },
+        );
+      }
+      if (!caption) {
+        return Response.json(
+          { error: "caption is required for a resource" },
+          { status: 400 },
+        );
+      }
+      capture = await buildResourceCapture(url, caption, ctx);
     } else {
       const text = payload.text.trim();
       if (!text) {

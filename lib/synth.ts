@@ -13,6 +13,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
+import matter from "gray-matter";
 import {
   commitTree,
   listDirectory as ghListDirectory,
@@ -46,6 +47,34 @@ const MAX_OPS_PER_INGEST = 50;
 // the system preamble flags the user's note as first-class analytical input.
 const INBOX_TRUNCATE_AT_CHARS = 15000;
 const INBOX_KEEP_BODY_CHARS = 10000;
+
+function readClusterFromFrontmatter(raw: string): string | null {
+  try {
+    const parsed = matter(raw);
+    if (typeof parsed.data.cluster === "string" && parsed.data.cluster) {
+      return parsed.data.cluster;
+    }
+    // Legacy `clusters: [...]` — first entry was canonical.
+    if (Array.isArray(parsed.data.clusters)) {
+      const first = parsed.data.clusters.find(
+        (c): c is string => typeof c === "string" && c.length > 0,
+      );
+      if (first) return first;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Returns the human-set cluster slug if the incoming write would change it.
+// Empty string when the cluster is preserved (or didn't exist before).
+function changedCluster(existing: string, incoming: string): string | null {
+  const before = readClusterFromFrontmatter(existing);
+  if (!before) return null;
+  const after = readClusterFromFrontmatter(incoming);
+  return after === before ? null : before;
+}
 
 function truncateInboxFile(content: string): string {
   if (content.length <= INBOX_TRUNCATE_AT_CHARS) return content;
@@ -90,10 +119,24 @@ Constraints:
 - delete_file is restricted to inbox/. You can't delete wiki pages or sources.
 - If a captured URL duplicates an existing source (same URL field), delete the inbox file and skip — don't create a duplicate source.
 - If a capture is too thin (e.g. bare URL with no extracted content) to justify wiki pages, still promote it to sources/ as a stub but don't create concept pages from it.
-- Categories are concepts/, projects/, and books/ only. Never create wiki/people/ pages. When a source centers on a person, attribute inline via {{source:slug}} highlights and the source-card byline, and weave their ideas into the relevant concepts/ or projects/ page. The body of work is the wiki page; the person is the byline.
+- Categories are concepts/, projects/, books/, and resources/. Never create wiki/people/ pages. When a source centers on a person, attribute inline via {{source:slug}} highlights and the source-card byline, and weave their ideas into the relevant concepts/ or projects/ page. The body of work is the wiki page; the person is the byline.
+- Each concepts page has one cluster, declared as \`cluster: <slug>\` in frontmatter. The human-set cluster is authoritative: when updating an existing wiki page, you MUST keep its existing \`cluster:\` value. If you think a page is mis-categorized, leave it where it is and surface the disagreement in your final summary instead. The write_file tool enforces this — it will reject a wiki page write that changes an existing cluster. Resource pages don't carry a cluster.
 - All your writes are batched into ONE commit at the end. The order of write_file / delete_file calls doesn't matter for atomicity.
 - The wiki schema (CLAUDE.md), the cluster manifest (wiki/clusters.yml), and the current catalog (index.md) are pre-loaded in this system message. Do NOT call read_file on those — go straight to read_file for inbox files and specific wiki pages you want to inspect or update.
 - Inbox files larger than ${INBOX_TRUNCATE_AT_CHARS} chars are truncated before you see them: frontmatter + first ${INBOX_KEEP_BODY_CHARS} chars of body + (if present) the user's "## My note" section. Synthesize from what you can see; don't try to recover truncated content.
+
+## Resource ingest (kind: resource)
+
+If an inbox file's frontmatter has \`kind: resource\`, it represents a URL + user-written caption. Treat it differently from a normal text/URL clip:
+
+- The "## Caption" section is the **primary signal** — it's the user's one-line take on what this thing is. Do not paraphrase it away. The "## Scan" section is supplementary — use it to corroborate the caption and pick the right bucket page. The scan may be partial (github repo metadata + README excerpt, or a truncated clip).
+- Write \`sources/<slug>-resource.md\` carrying \`kind: resource\`, \`url\`, \`title\`, \`date\` (today, YYYY-MM-DD), and \`caption\` (the user's caption verbatim) in the frontmatter. Body can be empty or carry a short distilled summary. The slug should end in \`-resource\` so the source filename signals its type.
+- Decide which bucket page(s) in \`wiki/resources/\` this resource belongs on. A bucket is a curated list (e.g. \`wiki/resources/agentic-coding-tools.md\`, \`wiki/resources/llm-observability.md\`). Prefer extending an existing bucket. Create a new bucket only when no existing one fits — give it a \`title\` in frontmatter and a one-paragraph description.
+- Append a void marker \`{{resource:<slug>-resource}}\` to bucket pages **newest first** within each section heading. Each marker goes on its own line. Do not reorder existing markers — only insert the new one near the top.
+- The same resource may appear on multiple bucket pages — that's expected when it spans themes. Do not deduplicate by deleting from one bucket.
+- If the caption is rich enough to enrich an existing concepts/ or projects/ page (the user named a specific concept the resource embodies), you may add a \`{{source:<slug>-resource}}...{{/source}}\` highlight there. Do not invent claims that aren't grounded in the caption or scan.
+- Bump \`updated:\` on every bucket page you touched. Do not bump \`updated:\` on a concepts/projects page where you only added a wikilink.
+- After: delete_file the original inbox/ file. Update index.md to reflect any new bucket pages.
 
 Below are the wiki schema, cluster manifest, and current catalog as your reference.`;
 
@@ -359,6 +402,18 @@ async function runIngestSession({
     run: async ({ path, content }) => {
       if (!ALLOWED_WRITE_PATH.test(path)) {
         return `Error: write rejected. Path '${path}' is outside the allowed set (wiki/*.md, sources/*.md, inbox/*.md, index.md, log.md).`;
+      }
+      // Cluster guard: the human-set cluster on an existing page survives
+      // ingests. Only applies to existing wiki pages; new pages and non-wiki
+      // files skip it.
+      if (path.startsWith("wiki/") && path.endsWith(".md")) {
+        const existing = await effectiveRead(path);
+        if (existing !== null) {
+          const original = changedCluster(existing, content);
+          if (original) {
+            return `Error: write rejected. The wiki page '${path}' would change its human-set cluster (was \`${original}\`). Re-issue the write with cluster: ${original} preserved in frontmatter.`;
+          }
+        }
       }
       if (++opCount > MAX_OPS_PER_INGEST) {
         return `Error: exceeded ${MAX_OPS_PER_INGEST} write/delete ops per ingest. Stop and emit your summary now.`;

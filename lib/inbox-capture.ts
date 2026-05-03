@@ -1,5 +1,6 @@
 import { slugify } from "@/lib/utils";
 import { clipUrl, type ClipResult } from "@/lib/clip";
+import { fetchResource } from "@/lib/resource-fetch";
 
 const MAX_SLUG_CHARS = 50;
 
@@ -108,4 +109,37 @@ export async function buildUrlCapture(
 ): Promise<BuiltCapture> {
   const clip = await clipUrl(url);
   return buildClipCapture(clip, note, ctx);
+}
+
+export async function buildResourceCapture(
+  url: string,
+  caption: string,
+  ctx: CaptureContext,
+): Promise<BuiltCapture> {
+  const scan = await fetchResource(url);
+  const slug = trimSlug(scan.title || url);
+  const filename = `${timestampPrefix()}-${slug}-resource.md`;
+  const front = [
+    "---",
+    `captured_at: ${new Date().toISOString()}`,
+    `source: ${ctx.source}`,
+    "kind: resource",
+    ...renderExtras(ctx.extras),
+    `url: ${escapeYaml(url)}`,
+    `title: ${escapeYaml(scan.title)}`,
+    `scan_kind: ${scan.scan_kind}`,
+    ...(scan.byline ? [`byline: ${escapeYaml(scan.byline)}`] : []),
+    "---",
+    "",
+  ].join("\n");
+  const heading = `# ${scan.title}\n\n[Original](${url})\n\n`;
+  const captionBlock = `## Caption\n\n${caption}\n`;
+  const scanBlock = scan.scan_summary
+    ? `\n## Scan\n\n${scan.scan_summary}\n`
+    : `\n_(no scan content — ${scan.scan_kind === "stub" ? "fetch failed or extraction empty" : "see scan_kind"})_\n`;
+  return {
+    filename,
+    body: front + heading + captionBlock + scanBlock,
+    summary: `${scan.title} — ${caption.length > 60 ? caption.slice(0, 57) + "…" : caption}`,
+  };
 }

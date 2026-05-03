@@ -30,7 +30,8 @@ export type InboxView = "list" | "new";
 
 export type CapturePayload =
   | { kind: "url"; url: string; note?: string }
-  | { kind: "text"; text: string };
+  | { kind: "text"; text: string }
+  | { kind: "resource"; url: string; caption: string };
 
 export interface CaptureSuccess {
   ok: true;

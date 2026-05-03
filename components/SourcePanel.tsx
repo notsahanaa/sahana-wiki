@@ -88,10 +88,16 @@ export function SourcePanel() {
                   "inline-block rounded border px-2 py-0.5 text-xs uppercase tracking-wider",
                   activeSource.kind === "note"
                     ? "border-accent-brown text-accent-brown"
-                    : "border-accent-mint text-accent-mint-ink",
+                    : activeSource.kind === "resource"
+                      ? "border-accent-lavender text-ink-primary"
+                      : "border-accent-mint text-accent-mint-ink",
                 )}
               >
-                {activeSource.kind === "note" ? "sahana" : "web"}
+                {activeSource.kind === "note"
+                  ? "sahana"
+                  : activeSource.kind === "resource"
+                    ? "resource"
+                    : "web"}
               </span>
               {activeSource.date && (
                 <span className="text-xs text-ink-tertiary">
@@ -118,6 +124,12 @@ export function SourcePanel() {
                   {activeSource.body}
                 </ReactMarkdown>
               </div>
+            ) : activeSource.kind === "resource" ? (
+              activeSource.caption && (
+                <p className="mt-4 text-sm leading-relaxed text-ink-secondary">
+                  {activeSource.caption}
+                </p>
+              )
             ) : (
               activeSource.summary && (
                 <p className="mt-4 text-sm leading-relaxed text-ink-secondary">

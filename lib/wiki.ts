@@ -18,9 +18,8 @@ export interface WikiPageMeta {
   href: string; // "/wiki/concepts/llm-as-librarian"
   filePath: string;
   tags?: string[];
-  // First entry is the primary (canonical) cluster; later entries are
-  // additional memberships echoed in the sidebar.
-  clusters?: string[];
+  // Each page belongs to at most one cluster.
+  cluster?: string;
   created?: string;
   updated?: string;
   // Aggregate over sources cited by this page. "mixed" when both kinds are
@@ -37,12 +36,7 @@ export interface ClusterDef {
 
 export interface ClusterGroup {
   cluster: ClusterDef | null; // null = "Unsorted" bucket
-  pages: ClusteredPageEntry[];
-}
-
-export interface ClusteredPageEntry {
-  page: WikiPageMeta;
-  isPrimary: boolean;
+  pages: WikiPageMeta[];
 }
 
 export type WikiClusteredTree = Record<string, ClusterGroup[]>;
@@ -57,10 +51,11 @@ export interface WikiPage {
 export interface SourceData {
   slug: string;
   title: string;
-  kind: "note" | "web";
+  kind: "note" | "web" | "resource";
   url?: string;
   date?: string;
   summary?: string;
+  caption?: string;
   tags?: string[];
   notes?: string;
   body: string;
@@ -117,6 +112,19 @@ async function readPageMeta(filePath: string): Promise<WikiPageMeta> {
   const sourceKind: "note" | "web" | "mixed" | undefined =
     hasNote && hasWeb ? "mixed" : hasNote ? "note" : hasWeb ? "web" : undefined;
 
+  // Read singular `cluster:` first; fall back to legacy `clusters: [...]`
+  // (taking the first entry) so old frontmatter keeps rendering until it gets
+  // migrated by a write.
+  let cluster: string | undefined;
+  if (typeof parsed.data.cluster === "string" && parsed.data.cluster) {
+    cluster = parsed.data.cluster;
+  } else if (Array.isArray(parsed.data.clusters)) {
+    const first = parsed.data.clusters.find(
+      (c): c is string => typeof c === "string" && c.length > 0,
+    );
+    if (first) cluster = first;
+  }
+
   return {
     title,
     category,
@@ -124,9 +132,7 @@ async function readPageMeta(filePath: string): Promise<WikiPageMeta> {
     href: `/wiki/${slug.join("/")}`,
     filePath,
     tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : undefined,
-    clusters: Array.isArray(parsed.data.clusters)
-      ? parsed.data.clusters.filter((c): c is string => typeof c === "string")
-      : undefined,
+    cluster,
     created: typeof parsed.data.created === "string" ? parsed.data.created : undefined,
     updated: typeof parsed.data.updated === "string" ? parsed.data.updated : undefined,
     sourceKind,
@@ -236,11 +242,34 @@ export async function getClusterManifest(): Promise<ClusterDef[]> {
 const CLUSTERS_YML_HEADER = `# Cluster manifest — source of truth for the sidebar's second-level grouping.
 #
 # Order here = display order in the sidebar.
-# Each concept declares its memberships in its own frontmatter (\`clusters: [...]\`),
-# with the FIRST entry being the primary cluster (canonical home).
+# Each concept declares its single membership in its own frontmatter (\`cluster: <slug>\`).
 #
 # Adding/expanding clusters: see the Ingest contract in CLAUDE.md.
 `;
+
+async function readManifestRaw(): Promise<Record<string, RawClusterEntry>> {
+  let raw = "";
+  try {
+    raw = await fs.readFile(CLUSTERS_FILE, "utf8");
+  } catch {
+    return {};
+  }
+  const parsed = (yaml.load(raw) as RawClusterFile | null) ?? {};
+  if (parsed.clusters && typeof parsed.clusters === "object") {
+    return { ...parsed.clusters };
+  }
+  return {};
+}
+
+async function writeManifestRaw(
+  clusters: Record<string, RawClusterEntry>,
+): Promise<void> {
+  const dumped = yaml.dump(
+    { clusters },
+    { lineWidth: 80, noRefs: true, sortKeys: false },
+  );
+  await fs.writeFile(CLUSTERS_FILE, CLUSTERS_YML_HEADER + "\n" + dumped, "utf8");
+}
 
 // Append a new cluster to wiki/clusters.yml. Preserves order of existing
 // entries; appends the new one at the end. Re-prepends the canonical comment
@@ -255,16 +284,7 @@ export async function appendClusterToManifest(input: {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     throw new Error("invalid slug (must be lowercase kebab-case)");
   }
-  let raw = "";
-  try {
-    raw = await fs.readFile(CLUSTERS_FILE, "utf8");
-  } catch {
-    raw = "";
-  }
-  const parsed = (yaml.load(raw) as RawClusterFile | null) ?? {};
-  const clusters = parsed.clusters && typeof parsed.clusters === "object"
-    ? { ...parsed.clusters }
-    : {};
+  const clusters = await readManifestRaw();
   if (slug in clusters) {
     throw new Error(`cluster "${slug}" already exists`);
   }
@@ -272,9 +292,89 @@ export async function appendClusterToManifest(input: {
     title: input.title.trim() || slug,
     description: input.description.trim(),
   };
-  const dumped = yaml.dump({ clusters }, { lineWidth: 80, noRefs: true, sortKeys: false });
-  await fs.writeFile(CLUSTERS_FILE, CLUSTERS_YML_HEADER + "\n" + dumped, "utf8");
+  await writeManifestRaw(clusters);
   return slug;
+}
+
+// Rename the human-readable title of an existing cluster. The slug — used by
+// page frontmatter — stays put on purpose; renaming the slug would silently
+// orphan every page that points at it.
+export async function renameClusterInManifest(input: {
+  slug: string;
+  title: string;
+}): Promise<void> {
+  const slug = input.slug.trim();
+  const title = input.title.trim();
+  if (!title) throw new Error("title required");
+  const clusters = await readManifestRaw();
+  if (!(slug in clusters)) {
+    throw new Error(`cluster "${slug}" does not exist`);
+  }
+  const existing = clusters[slug];
+  const description =
+    typeof existing?.description === "string" ? existing.description : "";
+  clusters[slug] = { title, description };
+  await writeManifestRaw(clusters);
+}
+
+// Drop a cluster from the manifest and clear `cluster:` from every wiki page
+// that pointed at it (those pages slide into "Unsorted" on next render). The
+// underlying .md files for the pages stay put — only their frontmatter is
+// touched. Returns the slugs of pages that were updated. Throws if the slug
+// isn't in the manifest.
+export async function deleteClusterFromManifest(
+  slugInput: string,
+): Promise<{ updatedPages: string[][] }> {
+  const slug = slugInput.trim();
+  const clusters = await readManifestRaw();
+  if (!(slug in clusters)) {
+    throw new Error(`cluster "${slug}" does not exist`);
+  }
+  delete clusters[slug];
+  await writeManifestRaw(clusters);
+
+  // Clear the now-stale cluster from any page frontmatter referencing it.
+  // Walk via the cached page metas so we don't reparse every file.
+  const pages = await getAllPagesMeta();
+  const affected = pages.filter((p) => p.cluster === slug);
+  const updatedPages: string[][] = [];
+  for (const page of affected) {
+    let didChange = false;
+    await writePageFrontmatter(page.filePath, (data) => {
+      const current = typeof data.cluster === "string" ? data.cluster : null;
+      if (current !== slug) return data;
+      didChange = true;
+      const { cluster: _drop, clusters: _legacy, ...rest } = data;
+      return { ...rest, updated: new Date().toISOString().slice(0, 10) };
+    });
+    if (didChange) updatedPages.push(page.slug);
+  }
+  return { updatedPages };
+}
+
+// Rewrite the manifest in the given slug order. The set of slugs must match
+// the current manifest exactly — no adds, no removes (use the dedicated
+// create endpoint for that). Order in the file = order in the sidebar.
+export async function reorderClustersInManifest(order: string[]): Promise<void> {
+  const clusters = await readManifestRaw();
+  const existing = new Set(Object.keys(clusters));
+  const requested = new Set(order);
+  if (requested.size !== order.length) {
+    throw new Error("reorder list contains duplicates");
+  }
+  for (const slug of order) {
+    if (!existing.has(slug)) {
+      throw new Error(`unknown cluster "${slug}"`);
+    }
+  }
+  for (const slug of existing) {
+    if (!requested.has(slug)) {
+      throw new Error(`reorder list missing cluster "${slug}"`);
+    }
+  }
+  const next: Record<string, RawClusterEntry> = {};
+  for (const slug of order) next[slug] = clusters[slug];
+  await writeManifestRaw(next);
 }
 
 // Bust the in-memory caches after a write to wiki/* or wiki/clusters.yml so
@@ -332,11 +432,14 @@ export async function resolveWikiFilePath(slug: string[]): Promise<string | null
 }
 
 // Returns a per-category tree where each category is a list of cluster groups
-// (in manifest order). Pages with multiple clusters appear under each one;
-// the entry is marked isPrimary=true under their first declared cluster and
-// isPrimary=false under the rest. Pages without clusters fall into a final
-// "Unsorted" group (cluster: null). Categories without clustered pages get
-// a single null-cluster group containing all their pages.
+// (in manifest order). Each page belongs to exactly one cluster (or none).
+// Pages without a cluster — or pointing at a slug not in the manifest — fall
+// into a final "Unsorted" group (cluster: null). Categories with no clusters
+// at all get a single null-cluster group containing all their pages.
+//
+// In manage/edit mode the sidebar wants to render every cluster, even empty
+// ones (so the user can drag pages into them). For categories that have any
+// clustered pages, we emit a group per manifest entry — empty groups included.
 export async function getClusteredTree(): Promise<WikiClusteredTree> {
   const pages = await getAllPagesMeta();
   const manifest = await loadClusterManifest();
@@ -355,39 +458,27 @@ export async function getClusteredTree(): Promise<WikiClusteredTree> {
     const visible = catPages.filter(
       (p) => !(p.slug.length >= 2 && p.slug[p.slug.length - 2] === "clusters"),
     );
-    const anyClustered = visible.some((p) => p.clusters && p.clusters.length > 0);
+    const anyClustered = visible.some((p) => p.cluster && manifest.has(p.cluster));
 
     if (!anyClustered) {
-      result[category] = [{ cluster: null, pages: visible.map((page) => ({ page, isPrimary: true })) }];
+      const sorted = [...visible].sort((a, b) => a.title.localeCompare(b.title));
+      result[category] = [{ cluster: null, pages: sorted }];
       continue;
     }
 
     const groups: ClusterGroup[] = [];
     for (const def of manifest.values()) {
-      const entries: ClusteredPageEntry[] = [];
-      for (const page of visible) {
-        if (!page.clusters || page.clusters.length === 0) continue;
-        const idx = page.clusters.indexOf(def.slug);
-        if (idx === -1) continue;
-        entries.push({ page, isPrimary: idx === 0 });
-      }
-      if (entries.length > 0) {
-        entries.sort((a, b) => a.page.title.localeCompare(b.page.title));
-        groups.push({ cluster: def, pages: entries });
-      }
+      const entries = visible
+        .filter((page) => page.cluster === def.slug)
+        .sort((a, b) => a.title.localeCompare(b.title));
+      groups.push({ cluster: def, pages: entries });
     }
 
-    // Pages with no clusters declared, or pointing at slugs not in the manifest.
-    const unsorted: ClusteredPageEntry[] = [];
-    for (const page of visible) {
-      const hasManifestCluster =
-        page.clusters && page.clusters.some((c) => manifest.has(c));
-      if (!hasManifestCluster) {
-        unsorted.push({ page, isPrimary: true });
-      }
-    }
+    // Pages with no cluster, or pointing at a slug not in the manifest.
+    const unsorted = visible
+      .filter((page) => !page.cluster || !manifest.has(page.cluster))
+      .sort((a, b) => a.title.localeCompare(b.title));
     if (unsorted.length > 0) {
-      unsorted.sort((a, b) => a.page.title.localeCompare(b.page.title));
       groups.push({ cluster: null, pages: unsorted });
     }
 
@@ -441,14 +532,19 @@ export async function getSource(slug: string): Promise<SourceData | null> {
   try {
     const raw = await fs.readFile(filePath, "utf8");
     const parsed = matter(raw);
+    const rawKind = parsed.data.kind;
+    const kind: SourceData["kind"] =
+      rawKind === "note" ? "note" : rawKind === "resource" ? "resource" : "web";
     return {
       slug,
       title: typeof parsed.data.title === "string" ? parsed.data.title : slug,
-      kind: parsed.data.kind === "note" ? "note" : "web",
+      kind,
       url: typeof parsed.data.url === "string" ? parsed.data.url : undefined,
       date: normalizeDate(parsed.data.date),
       summary:
         typeof parsed.data.summary === "string" ? parsed.data.summary : undefined,
+      caption:
+        typeof parsed.data.caption === "string" ? parsed.data.caption : undefined,
       tags: Array.isArray(parsed.data.tags) ? parsed.data.tags : undefined,
       notes:
         typeof parsed.data.notes === "string" ? parsed.data.notes : undefined,
@@ -485,6 +581,17 @@ function processMarkdown(
       // Escape any literal HTML angle brackets in the text to keep the structure clean.
       const safe = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
       return `<mark data-source="${slug}">${safe}</mark>`;
+    },
+  );
+
+  // 1b. Resource markers (void): {{resource:slug}} -> block-level placeholder
+  // that the renderer expands into a ResourceCard. Surrounding blank lines
+  // ensure markdown treats the <div> as a block, not inline.
+  processed = processed.replace(
+    /\{\{resource:([\w-]+)\}\}/g,
+    (_match, slug: string) => {
+      referencedSources.add(slug);
+      return `\n\n<div data-resource="${slug}"></div>\n\n`;
     },
   );
 

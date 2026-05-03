@@ -75,3 +75,22 @@ Append-only chronological log of ingests, queries, and maintenance.
 ## 2026-04-28
 
 - **Ingest: Gigi Levy-Weiss / NFX — "1,000 Simultaneous Experiments."** Promoted to `sources/levy-weiss-1000-experiments`. Updated `wiki/concepts/hypercreativity` (added "company-scale corollary" section: probability math for cheap experiments, EV-shifts-to-edges argument, real risk is under-exploring). Updated `wiki/concepts/one-person-studios` (added "from tools to employees" mental model flip, 12-person → 1,200-person compression, and traits list for orchestrators at scale).
+- 2026-05-01 human cluster op: created cluster `ai-taste` and tagged 1 page (concepts/taste-as-skill)
+- 2026-05-03 human cluster op: created cluster `agentic-ai-parts`
+- 2026-05-03 human cluster op: moved 1 page → `agentic-ai-parts` (concepts/folder-is-the-agent)
+- 2026-05-03 human cluster op: moved 1 page → `ai-taste` (concepts/taste-as-skill)
+- 2026-05-03 human cluster op: moved 1 page → `ai-capability` (concepts/ai-autopilot)
+- 2026-05-03 human cluster op: moved 1 page → `ai-taste` (concepts/ai-autopilot)
+- 2026-05-03 human cluster op: moved 1 page → `ai-taste` (concepts/games-as-curriculum)
+- 2026-05-03 human cluster op: renamed cluster `paradigms` → "AGENTIC FUTURES"
+- 2026-05-03 human cluster op: renamed cluster `ai-taste` → "AI TASTE TRAINING"
+- 2026-05-03 human cluster op: renamed cluster `moats` → "MOATS IN THE AI ERA"
+- 2026-05-03 human cluster op: reordered clusters → agentic-coding, agentic-ai-parts, paradigms, moats, anti-patterns, ai-capability, ai-taste
+- 2026-05-03 human cluster op: reordered clusters → agentic-coding, paradigms, moats, anti-patterns, ai-capability, ai-taste, agentic-ai-parts
+- 2026-05-03 human cluster op: reordered clusters → agentic-coding, paradigms, agentic-ai-parts, moats, anti-patterns, ai-capability, ai-taste
+- 2026-05-03 human cluster op: reordered clusters → agentic-coding, agentic-ai-parts, paradigms, moats, anti-patterns, ai-capability, ai-taste
+- 2026-05-03 human cluster op: reordered clusters → agentic-coding, agentic-ai-parts, ai-taste, paradigms, moats, anti-patterns, ai-capability
+- 2026-05-03 human cluster op: created cluster `deletion-test`
+- 2026-05-03 human cluster op: moved 1 page → `deletion-test` (concepts/taste-as-skill)
+- 2026-05-03 human cluster op: deleted cluster `deletion-test` (moved 1 page to Unsorted: concepts/taste-as-skill)
+- 2026-05-03 human cluster op: moved 1 page → `paradigms` (concepts/taste-as-skill)

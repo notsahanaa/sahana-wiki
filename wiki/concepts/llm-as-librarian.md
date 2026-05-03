@@ -2,7 +2,7 @@
 title: LLM as Librarian
 category: concepts
 tags: [pkm, llm, pattern]
-clusters: [agentic-coding]
+cluster: agentic-coding
 created: 2026-04-25
 updated: 2026-04-25
 ---

@@ -180,7 +180,7 @@ export function InboxModal() {
   );
 }
 
-type CaptureMode = "url" | "text";
+type CaptureMode = "url" | "text" | "resource";
 
 function NewSourceForm() {
   const { capturing, addSource, closeNewSource } = useInbox();
@@ -188,11 +188,16 @@ function NewSourceForm() {
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
   const [text, setText] = useState("");
+  const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit =
     !capturing &&
-    (mode === "url" ? url.trim().length > 0 : text.trim().length > 0);
+    (mode === "url"
+      ? url.trim().length > 0
+      : mode === "resource"
+        ? url.trim().length > 0 && caption.trim().length > 0
+        : text.trim().length > 0);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -205,7 +210,13 @@ function NewSourceForm() {
             url: url.trim(),
             note: note.trim() || undefined,
           }
-        : { kind: "text" as const, text: text.trim() };
+        : mode === "resource"
+          ? {
+              kind: "resource" as const,
+              url: url.trim(),
+              caption: caption.trim(),
+            }
+          : { kind: "text" as const, text: text.trim() };
     const result = await addSource(payload);
     if (!result.ok) {
       setError(result.error);
@@ -215,6 +226,7 @@ function NewSourceForm() {
     setUrl("");
     setNote("");
     setText("");
+    setCaption("");
   }
 
   return (
@@ -233,6 +245,11 @@ function NewSourceForm() {
             label="Text"
             active={mode === "text"}
             onClick={() => setMode("text")}
+          />
+          <ModeButton
+            label="Resource"
+            active={mode === "resource"}
+            onClick={() => setMode("resource")}
           />
         </fieldset>
 
@@ -267,6 +284,41 @@ function NewSourceForm() {
               />
               <span className="text-xs text-ink-tertiary">
                 Captured as a “My note” block — strongest signal during synthesis.
+              </span>
+            </label>
+          </div>
+        ) : mode === "resource" ? (
+          <div className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs uppercase tracking-wider text-ink-tertiary">
+                URL
+              </span>
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://…"
+                disabled={capturing}
+                autoFocus
+                required
+                className="rounded border border-ink-muted bg-bg-primary px-3 py-2 text-sm text-ink-primary outline-none focus:border-ink-secondary disabled:opacity-60"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs uppercase tracking-wider text-ink-tertiary">
+                Caption
+              </span>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="One-line take — what this is and why it matters."
+                rows={3}
+                disabled={capturing}
+                required
+                className="resize-y rounded border border-ink-muted bg-bg-primary px-3 py-2 text-sm text-ink-primary outline-none focus:border-ink-secondary disabled:opacity-60"
+              />
+              <span className="text-xs text-ink-tertiary">
+                Required. Big URLs (GitHub repos, docs hubs) are scanned, not fully clipped — caption carries the meaning.
               </span>
             </label>
           </div>

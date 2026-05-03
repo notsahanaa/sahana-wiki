@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import Link from "next/link";
 import { useSourcePanel } from "./SourceContext";
+import { ResourceCard } from "./ResourceCard";
 import { cn } from "@/lib/utils";
 import type { SourceData } from "@/lib/wiki";
 
@@ -27,7 +28,13 @@ function formatDate(iso: string): string {
   });
 }
 
-export function WikiArticle({ title, category, updated, markdown, sources }: Props) {
+export function WikiArticle({
+  title,
+  category,
+  updated,
+  markdown,
+  sources,
+}: Props) {
   const { open } = useSourcePanel();
 
   const sourceList = Object.values(sources).sort((a, b) => {
@@ -72,7 +79,9 @@ export function WikiArticle({ title, category, updated, markdown, sources }: Pro
               const className =
                 data.kind === "note"
                   ? "source-highlight source-highlight-note"
-                  : "source-highlight";
+                  : data.kind === "resource"
+                    ? "source-highlight source-highlight-resource"
+                    : "source-highlight";
               return (
                 <button
                   type="button"
@@ -84,6 +93,21 @@ export function WikiArticle({ title, category, updated, markdown, sources }: Pro
                   {children}
                 </button>
               );
+            },
+            div: ({ children, ...props }) => {
+              const slug = (props as { "data-resource"?: string })["data-resource"];
+              if (slug) {
+                const data = sources[slug];
+                if (data && data.kind === "resource") {
+                  return <ResourceCard data={data} />;
+                }
+                return (
+                  <div className="my-3 rounded border border-dashed border-ink-muted px-4 py-3 text-sm italic text-ink-tertiary">
+                    [missing resource: {slug}]
+                  </div>
+                );
+              }
+              return <div {...props}>{children}</div>;
             },
           }}
         >

@@ -44,16 +44,15 @@ export async function handleList(): Promise<Response> {
           : headerLabel;
         lines.push(`    ▸ *${headerLink}*`);
       }
-      for (const entry of group.pages) {
+      for (const page of group.pages) {
         if (total >= MAX_PAGES) {
           truncated++;
           continue;
         }
         const indent = isFlat ? "    " : "        ";
         const bullet = isFlat ? "▸" : "•";
-        const echo = entry.isPrimary ? "" : " ↗";
         lines.push(
-          `${indent}${bullet} <${base}${entry.page.href}|${entry.page.title}>${echo}`,
+          `${indent}${bullet} <${base}${page.href}|${page.title}>`,
         );
         total++;
       }

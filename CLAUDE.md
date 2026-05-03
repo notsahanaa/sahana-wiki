@@ -10,10 +10,11 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
 
 | Path | Purpose | Editable by |
 |---|---|---|
-| `wiki/` | Synthesized wiki pages (concepts, projects, books) | LLM librarian |
+| `wiki/` | Synthesized wiki pages (concepts, projects, books, resources) | LLM librarian |
 | `wiki/clusters.yml` | Cluster manifest — slugs, titles, descriptions for the sidebar's second-level grouping | LLM librarian |
 | `wiki/concepts/clusters/` | Optional cluster pages (lazy — created only when a cluster earns its own prose) | LLM librarian |
-| `sources/` | Immutable raw clips, papers, notes | Append-only |
+| `wiki/resources/` | Curated lists of external pointers (tools, papers, dashboards). Bucket pages, newest-first. | LLM librarian |
+| `sources/` | Immutable raw clips, papers, notes, resource records | Append-only |
 | `inbox/` | Un-ingested captures from Slack/clipper (Stage 2+) | Auto-emptied during ingest |
 | `index.md` | Content catalog: every wiki page by category, one-line summary | LLM librarian |
 | `log.md` | Append-only chronological log of ingests/edits/queries | LLM librarian |
@@ -23,22 +24,23 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
 ## Markdown conventions
 
 - **Wikilinks:** `[[concepts/karpathy-pkm]]` or `[[Karpathy]]` — internal navigation between wiki pages. The renderer slugifies and routes to `/wiki/<path>`.
-- **Source highlights:** `{{source:karpathy-pkm-gist}}some highlighted phrase{{/source}}` — phrases backed by a specific source. The renderer turns these into clickable highlights; clicking opens the right panel with the source card (date, summary, link).
-- **No people pages.** Categories are `concepts/`, `projects/`, and `books/` only — never `wiki/people/`. People are attributed inline via `{{source:...}}` highlights and the source-card byline; their ideas live on the relevant concept or project page.
+- **Source highlights:** `{{source:karpathy-pkm-gist}}some highlighted phrase{{/source}}` — phrases backed by a specific source. The renderer turns these into clickable highlights; clicking opens the right panel with the source card (date, summary, link). Resources (`kind: resource` sources) work the same way — clicking the highlight opens a card showing the caption + open-link affordance.
+- **Resource markers:** `{{resource:cline-resource}}` — a void marker (no body, no closing tag) that the renderer expands into a caption + open-link card. Used inside `wiki/resources/<bucket>.md` pages to list resources newest-first. Each marker goes on its own line.
+- **No people pages.** Categories are `concepts/`, `projects/`, `books/`, and `resources/` only — never `wiki/people/`. People are attributed inline via `{{source:...}}` highlights and the source-card byline; their ideas live on the relevant concept or project page.
 - **Frontmatter (YAML):**
   ```yaml
   ---
   title: LLM as Librarian
   category: concepts
   tags: [pkm, llm, pattern]
-  clusters: [agentic-coding]
+  cluster: agentic-coding
   created: 2026-04-25
   updated: 2026-04-25
   ---
   ```
-  - `clusters` is an array. **First entry is the primary cluster** (canonical sidebar home). Additional entries echo the page under those clusters with a `↗` glyph.
-  - Cluster slugs must exist in `wiki/clusters.yml`. Adding a slug not in the manifest drops the page into "Unsorted".
-  - Concepts always declare clusters. Projects and books may omit `clusters` (they render flat).
+  - `cluster` is a single slug. Each page belongs to **exactly one** cluster — no echoing into multiple clusters.
+  - The slug must exist in `wiki/clusters.yml`. A page with no `cluster:` (or one pointing at a slug not in the manifest) drops into "Unsorted".
+  - Concepts always declare a cluster. Projects and books may omit `cluster:` (they render flat).
 - **Source files** also use frontmatter:
   ```yaml
   ---
@@ -52,6 +54,17 @@ When working in this repo, treat the wiki content (`/wiki/`, `/sources/`, `/inbo
     under a "Notes" heading. Omit when the user didn't add a note.
   ---
   ```
+- **Resource sources** (a third source kind alongside web clips and notes) use:
+  ```yaml
+  ---
+  title: Cline
+  url: https://github.com/cline/cline
+  date: 2026-05-02
+  kind: resource
+  caption: VS Code agentic coding extension — open-source, supports MCP.
+  ---
+  ```
+  The slug ends in `-resource` (e.g. `sources/cline-resource.md`). `caption:` is the user's one-line take and is what the renderer shows in both the resource-card on bucket pages and the source-panel when the source is cited via `{{source:cline-resource}}`. A single resource may be referenced from multiple `wiki/resources/<bucket>.md` pages and from concepts/projects pages — that's expected.
 - **`/wiki-add` syntax:** `/wiki-add <text-or-url>` — a URL alone clips the page; trailing text after a URL is captured as the user's notes on that source. Both the extracted page and the notes are analyzed during synthesis, and the notes survive to the source's `notes:` frontmatter field.
 
 ## Workflows
@@ -64,7 +77,7 @@ When a new source lands in `inbox/` or you (Sahana) say "I just read X, integrat
 3. Decide which `wiki/*.md` pages to create or update (typically 5–15 pages touch on a single rich source).
 4. For each updated page: keep voice consistent, add `{{source:slug}}` highlights wherever the new content is grounded in this source, add `[[wikilinks]]` to neighbors.
 5. **Cluster decisions per page (concepts only):**
-   - **Joins existing cluster(s):** add slugs to `clusters: [...]` in frontmatter. Multi-membership is fine and encouraged where it earns its keep. No manifest change.
+   - **Joins an existing cluster:** set `cluster: <slug>` in frontmatter. A page lives in exactly one cluster — pick the best fit, don't try to hedge.
    - **Expands a cluster meaningfully:** when an ingest pushes a cluster's scope (the existing `description:` no longer covers it), rewrite the description in `wiki/clusters.yml`. If the cluster has a page in `wiki/concepts/clusters/<slug>.md`, add a `{{source:...}}` highlight there.
    - **Creates a new cluster:** add an entry to `wiki/clusters.yml` with title + description. Use sparingly — prefer expanding an existing cluster over fragmenting.
 6. Move the source from `inbox/` to `sources/` (Stage 4).
@@ -73,14 +86,18 @@ When a new source lands in `inbox/` or you (Sahana) say "I just read X, integrat
 
 ### Human cluster ops (web sidebar)
 
-Sahana can also drive cluster membership from the web sidebar (pencil icon → "manage" mode → multi-select concepts → add/remove cluster, or "new cluster from selection"). When she does, two things happen automatically:
+Sahana can drive cluster organization from the web sidebar (pencil icon → edit mode). In edit mode she can:
 
-- The selected concepts' frontmatter `clusters: [...]` arrays are mutated and `updated:` is bumped.
-- A bullet line is appended to `log.md` (e.g. `2026-04-28 human cluster op: added \`tooling\` to 3 pages (concepts/agent-native, ...)`).
+- **Add a new category** — appends an entry to `wiki/clusters.yml` (slug derived from the typed name, empty `description:`).
+- **Rename a category** — clicks a cluster header and edits in place. Only the manifest `title:` changes; the slug stays put so existing page frontmatter still resolves.
+- **Drag and drop pages between categories** — sets the dropped page's `cluster:` to the target slug (or clears it for "Unsorted"). Each page exists in exactly one cluster, so this is always a move, never a copy.
+- **Drag and drop categories to reorder them** — drag a cluster header onto another to insert it before/after (upper or lower half of the target decides). Rewrites the order in `wiki/clusters.yml`; that order is what the sidebar renders.
 
-What is **not** updated automatically: `index.md`, the manifest `description:` of an existing cluster (only new clusters write to `wiki/clusters.yml`), and any cluster page at `wiki/concepts/clusters/<slug>.md`.
+Each of those mutations bumps `updated:` on any touched page and appends a bullet to `log.md`.
 
-**On the next ingest, treat human-set clusters as authoritative.** Don't silently rewrite or remove existing entries in `clusters: [...]`; only extend them. If a human just created a new cluster (visible in `wiki/clusters.yml` and via `log.md`), reconcile `index.md` to mirror it — that's part of step 8 below — and consider whether the new cluster's `description:` needs sharpening based on the concepts now sitting under it.
+What is **not** updated automatically: `index.md`, the manifest `description:` of an existing cluster, and any cluster page at `wiki/concepts/clusters/<slug>.md`.
+
+**On the next ingest, treat human-set clusters as authoritative.** Don't silently move pages out of the cluster a human placed them in. If a human just created a new cluster (visible in `wiki/clusters.yml` and via `log.md`), reconcile `index.md` to mirror it — that's part of step 8 below — and consider whether the new cluster's `description:` needs sharpening based on the concepts now sitting under it.
 
 ### Query
 

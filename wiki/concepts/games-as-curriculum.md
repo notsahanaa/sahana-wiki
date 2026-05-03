@@ -1,10 +1,15 @@
 ---
 title: Games as Curriculum
 category: concepts
-tags: [agent-native, training-data, transfer-learning, reinforcement-learning, every]
-clusters: [ai-capability]
-created: 2026-04-26
-updated: 2026-04-26
+tags:
+  - agent-native
+  - training-data
+  - transfer-learning
+  - reinforcement-learning
+  - every
+cluster: ai-taste
+created: '2026-04-26'
+updated: '2026-05-03'
 ---
 
 # Games as Curriculum
