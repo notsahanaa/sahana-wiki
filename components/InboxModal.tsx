@@ -146,9 +146,16 @@ export function InboxModal() {
                 </div>
               )}
               {ingestResult?.kind === "error" && (
-                <p className="mb-2 text-xs text-accent-brown">
-                  ❌ {ingestResult.message}
-                </p>
+                <div className="mb-2">
+                  <p className="text-xs text-accent-brown">
+                    ❌ {ingestResult.message}
+                  </p>
+                  {ingestResult.summary && (
+                    <pre className="mt-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap rounded border border-ink-muted bg-bg-primary px-2 py-1.5 font-mono text-[11px] leading-snug text-ink-secondary">
+                      {ingestResult.summary}
+                    </pre>
+                  )}
+                </div>
               )}
               <button
                 type="button"

@@ -22,6 +22,7 @@ export interface IngestSuccess {
 export interface IngestFailure {
   kind: "error";
   message: string;
+  summary?: string;
 }
 
 export type IngestResult = IngestSuccess | IngestFailure;
@@ -208,6 +209,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
           setIngestResult({
             kind: "error",
             message: data.error ?? `Ingest failed (${r.status})`,
+            summary: data.summary,
           });
           return;
         }
