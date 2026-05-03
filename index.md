@@ -1,6 +1,6 @@
 ---
 title: Wiki Index
-updated: 2026-04-26
+updated: 2026-05-03
 ---
 
 # Index
@@ -59,3 +59,9 @@ How AI gets good — curricula, transfer learning, the substrates that produce r
 ## Books
 
 *(none yet)*
+
+## Resources
+
+### Agentic Coding Tools
+
+- [[resources/agentic-coding-tools]] — curated list of tools that put AI agents at the center of the software-development loop (IDEs, coding assistants, multi-agent orchestrators).

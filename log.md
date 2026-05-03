@@ -94,3 +94,7 @@ Append-only chronological log of ingests, queries, and maintenance.
 - 2026-05-03 human cluster op: moved 1 page → `deletion-test` (concepts/taste-as-skill)
 - 2026-05-03 human cluster op: deleted cluster `deletion-test` (moved 1 page to Unsorted: concepts/taste-as-skill)
 - 2026-05-03 human cluster op: moved 1 page → `paradigms` (concepts/taste-as-skill)
+
+## 2026-05-03
+
+- **Ingest: Zencoder resource.** Promoted `inbox/2026-05-03-0026-zencoder-the-ai-coding-agent-resource.md` → `sources/zencoder-the-ai-coding-agent-resource.md`. Created new bucket page `wiki/resources/agentic-coding-tools.md`. Updated `index.md` to add Resources section.
