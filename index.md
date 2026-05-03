@@ -20,6 +20,7 @@ How software gets built when AI agents are first-class — Claude Code patterns,
 ### Agentic AI Parts
 
 - [[concepts/folder-is-the-agent]] — Klaassen's pattern: a well-structured folder + CLAUDE.md is itself an effective agent.
+- [[concepts/agent-anatomy]] — the three-layer breakdown of what an agent is: Model, Runtime, and Tools.
 
 ### AI Taste Training
 

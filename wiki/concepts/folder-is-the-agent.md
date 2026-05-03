@@ -28,7 +28,7 @@ The bottleneck is the reviewer, not the worker. So instead of multiplying worker
 
 > {{source:klaassen-folder-is-the-agent}}*"An agent is much simpler: a model with enough context so you don't have to re-explain everything each time you open the chat."*{{/source}}
 
-Context, not orchestration, is the unit of leverage.
+Context, not orchestration, is the unit of leverage. For a fuller breakdown of agent anatomy — Model, Runtime, and Tools as three distinct layers — see [[concepts/agent-anatomy]].
 
 ## Anatomy
 
@@ -66,6 +66,7 @@ All four are the same insight in different domains: **rich shared context beats 
 
 ## Related
 
+- [[concepts/agent-anatomy]] — the three-layer breakdown: Model, Runtime, Tools
 - [[concepts/llm-as-librarian]]
 - [[concepts/agent-native]]
 - [[concepts/compound-engineering]]

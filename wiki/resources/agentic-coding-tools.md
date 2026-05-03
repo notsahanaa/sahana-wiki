@@ -10,6 +10,10 @@ updated: 2026-05-03
 
 A curated list of tools that put AI agents at the center of the software-development loop — IDEs, coding assistants, multi-agent orchestrators, and CI/CD integrations. See [[concepts/agent-native]] and [[concepts/compound-engineering]] for the ideas these tools embody.
 
+## Visual & No-Code Agentic Builders
+
+{{resource:2026-05-03-0056-httpsappcodreamaiexperiences-resource}}
+
 ## Filesystems & Agent Memory
 
 {{resource:mesa-versioned-filesystem-resource}}
