@@ -103,3 +103,6 @@ Append-only chronological log of ingests, queries, and maintenance.
   - *agent-native* (per-app) ↔ *agent-native-office* (org-scale operations) — same principles applied at different blast radii.
   - *agent-anatomy* (parts) ↔ *context-engineering* (what the runtime engineers) — anatomy is the static decomposition; context-engineering is the live discipline.
   - *one-person-studios* (one human, many agents) ↔ *agent-native-office* (many humans, many agents) — the two organizational shapes the agent stack enables.
+- 2026-05-03 human cluster op: reordered clusters → agentic-coding, agentic-ai-parts, ai-taste, paradigms, moats, anti-patterns, ai-capability
+- 2026-05-03 human cluster op: moved 1 page → `ai-capability` (concepts/games-as-curriculum)
+- 2026-05-03 human cluster op: moved 1 page → `ai-taste` (concepts/games-as-curriculum)

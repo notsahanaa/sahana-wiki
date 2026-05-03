@@ -11,7 +11,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
   ClusterGroup,
@@ -116,7 +116,12 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 export function TopicTree({ tree }: { tree: WikiClusteredTree }) {
   const pathname = usePathname();
-  const { active: manageActive, toggle: toggleManage } = useManageMode();
+  const {
+    active: manageActive,
+    toggle: toggleManage,
+    error,
+    clearError,
+  } = useManageMode();
   const categories = Object.keys(tree).sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a);
     const bi = CATEGORY_ORDER.indexOf(b);
@@ -151,6 +156,23 @@ export function TopicTree({ tree }: { tree: WikiClusteredTree }) {
           <Pencil className="h-3.5 w-3.5" strokeWidth={2.25} />
         </button>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded border border-accent-brown/60 bg-accent-brown/10 px-2 py-1.5 text-xs leading-snug text-accent-brown"
+        >
+          <span className="min-w-0 flex-1 break-words">{error}</span>
+          <button
+            type="button"
+            onClick={clearError}
+            aria-label="Dismiss error"
+            className="-mr-0.5 -mt-0.5 shrink-0 rounded p-0.5 text-accent-brown/80 transition hover:bg-accent-brown/20 hover:text-accent-brown"
+          >
+            <X className="h-3 w-3" strokeWidth={2.5} />
+          </button>
+        </div>
+      )}
 
       <DragProvider>
         <div className="flex flex-col gap-3">

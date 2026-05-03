@@ -1,27 +1,28 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-
-const WIKI_DIR = path.join(process.cwd(), "wiki");
+import { repoPathForWikiSlug, revalidateWikiCaches } from "@/lib/wiki";
+import { persistChanges, readForPersist } from "@/lib/persist";
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ slug: string[] }> },
 ) {
   const { slug } = await params;
-  if (!slug?.length || slug.some((s) => !s || s.includes("..") || s.includes("/"))) {
+  const repoPath = repoPathForWikiSlug(slug ?? []);
+  if (!repoPath) {
     return new Response("invalid slug", { status: 400 });
   }
-  const filePath = path.join(WIKI_DIR, ...slug) + ".md";
-  const resolved = path.resolve(filePath);
-  if (!resolved.startsWith(path.resolve(WIKI_DIR) + path.sep)) {
-    return new Response("path escape", { status: 400 });
+  const existing = await readForPersist(repoPath);
+  if (existing === null) {
+    return new Response("not found", { status: 404 });
   }
   try {
-    await fs.unlink(resolved);
+    await persistChanges({
+      message: `wiki: delete ${slug.join("/")}`,
+      changes: [{ path: repoPath, content: null }],
+    });
   } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") return new Response("not found", { status: 404 });
-    throw err;
+    const message = err instanceof Error ? err.message : "commit failed";
+    return new Response(message, { status: 500 });
   }
+  revalidateWikiCaches();
   return new Response(null, { status: 204 });
 }

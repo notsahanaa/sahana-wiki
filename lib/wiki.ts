@@ -247,13 +247,12 @@ const CLUSTERS_YML_HEADER = `# Cluster manifest — source of truth for the side
 # Adding/expanding clusters: see the Ingest contract in CLAUDE.md.
 `;
 
-async function readManifestRaw(): Promise<Record<string, RawClusterEntry>> {
-  let raw = "";
-  try {
-    raw = await fs.readFile(CLUSTERS_FILE, "utf8");
-  } catch {
-    return {};
-  }
+// Path to the manifest file, repo-relative. Used by routes that build a
+// TreeChange targeting it.
+export const CLUSTERS_FILE_REPO_PATH = "wiki/clusters.yml";
+
+function parseManifestYaml(raw: string | null): Record<string, RawClusterEntry> {
+  if (!raw) return {};
   const parsed = (yaml.load(raw) as RawClusterFile | null) ?? {};
   if (parsed.clusters && typeof parsed.clusters === "object") {
     return { ...parsed.clusters };
@@ -261,30 +260,25 @@ async function readManifestRaw(): Promise<Record<string, RawClusterEntry>> {
   return {};
 }
 
-async function writeManifestRaw(
-  clusters: Record<string, RawClusterEntry>,
-): Promise<void> {
+function dumpManifestYaml(clusters: Record<string, RawClusterEntry>): string {
   const dumped = yaml.dump(
     { clusters },
     { lineWidth: 80, noRefs: true, sortKeys: false },
   );
-  await fs.writeFile(CLUSTERS_FILE, CLUSTERS_YML_HEADER + "\n" + dumped, "utf8");
+  return CLUSTERS_YML_HEADER + "\n" + dumped;
 }
 
-// Append a new cluster to wiki/clusters.yml. Preserves order of existing
-// entries; appends the new one at the end. Re-prepends the canonical comment
-// header (folded-block descriptions and any prior comments are not preserved).
-// Returns the slug. Throws if the slug already exists or is invalid.
-export async function appendClusterToManifest(input: {
-  slug: string;
-  title: string;
-  description: string;
-}): Promise<string> {
+// Pure: take the current clusters.yml content and an input cluster, return the
+// new YAML and the canonical slug. Throws on invalid slug or duplicate.
+export function computeManifestWithCreated(
+  currentYaml: string | null,
+  input: { slug: string; title: string; description: string },
+): { yaml: string; slug: string } {
   const slug = input.slug.trim();
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     throw new Error("invalid slug (must be lowercase kebab-case)");
   }
-  const clusters = await readManifestRaw();
+  const clusters = parseManifestYaml(currentYaml);
   if (slug in clusters) {
     throw new Error(`cluster "${slug}" already exists`);
   }
@@ -292,21 +286,21 @@ export async function appendClusterToManifest(input: {
     title: input.title.trim() || slug,
     description: input.description.trim(),
   };
-  await writeManifestRaw(clusters);
-  return slug;
+  return { yaml: dumpManifestYaml(clusters), slug };
 }
 
-// Rename the human-readable title of an existing cluster. The slug — used by
-// page frontmatter — stays put on purpose; renaming the slug would silently
-// orphan every page that points at it.
-export async function renameClusterInManifest(input: {
-  slug: string;
-  title: string;
-}): Promise<void> {
-  const slug = input.slug.trim();
-  const title = input.title.trim();
+// Pure: rename the human-readable title of an existing cluster. The slug stays
+// put on purpose; renaming the slug would silently orphan every page that
+// points at it.
+export function computeManifestWithRename(
+  currentYaml: string | null,
+  slugInput: string,
+  titleInput: string,
+): string {
+  const slug = slugInput.trim();
+  const title = titleInput.trim();
   if (!title) throw new Error("title required");
-  const clusters = await readManifestRaw();
+  const clusters = parseManifestYaml(currentYaml);
   if (!(slug in clusters)) {
     throw new Error(`cluster "${slug}" does not exist`);
   }
@@ -314,49 +308,32 @@ export async function renameClusterInManifest(input: {
   const description =
     typeof existing?.description === "string" ? existing.description : "";
   clusters[slug] = { title, description };
-  await writeManifestRaw(clusters);
+  return dumpManifestYaml(clusters);
 }
 
-// Drop a cluster from the manifest and clear `cluster:` from every wiki page
-// that pointed at it (those pages slide into "Unsorted" on next render). The
-// underlying .md files for the pages stay put — only their frontmatter is
-// touched. Returns the slugs of pages that were updated. Throws if the slug
-// isn't in the manifest.
-export async function deleteClusterFromManifest(
+// Pure: drop a cluster from the manifest. Returns the new YAML. Pages that
+// reference the slug are cleaned up separately by the caller (they need their
+// own TreeChange entries in the same commit).
+export function computeManifestWithDeleted(
+  currentYaml: string | null,
   slugInput: string,
-): Promise<{ updatedPages: string[][] }> {
+): string {
   const slug = slugInput.trim();
-  const clusters = await readManifestRaw();
+  const clusters = parseManifestYaml(currentYaml);
   if (!(slug in clusters)) {
     throw new Error(`cluster "${slug}" does not exist`);
   }
   delete clusters[slug];
-  await writeManifestRaw(clusters);
-
-  // Clear the now-stale cluster from any page frontmatter referencing it.
-  // Walk via the cached page metas so we don't reparse every file.
-  const pages = await getAllPagesMeta();
-  const affected = pages.filter((p) => p.cluster === slug);
-  const updatedPages: string[][] = [];
-  for (const page of affected) {
-    let didChange = false;
-    await writePageFrontmatter(page.filePath, (data) => {
-      const current = typeof data.cluster === "string" ? data.cluster : null;
-      if (current !== slug) return data;
-      didChange = true;
-      const { cluster: _drop, clusters: _legacy, ...rest } = data;
-      return { ...rest, updated: new Date().toISOString().slice(0, 10) };
-    });
-    if (didChange) updatedPages.push(page.slug);
-  }
-  return { updatedPages };
+  return dumpManifestYaml(clusters);
 }
 
-// Rewrite the manifest in the given slug order. The set of slugs must match
-// the current manifest exactly — no adds, no removes (use the dedicated
-// create endpoint for that). Order in the file = order in the sidebar.
-export async function reorderClustersInManifest(order: string[]): Promise<void> {
-  const clusters = await readManifestRaw();
+// Pure: rewrite the manifest in the given slug order. The set of slugs must
+// match the current manifest exactly. Order in the file = order in the sidebar.
+export function computeReorderedManifest(
+  currentYaml: string | null,
+  order: string[],
+): string {
+  const clusters = parseManifestYaml(currentYaml);
   const existing = new Set(Object.keys(clusters));
   const requested = new Set(order);
   if (requested.size !== order.length) {
@@ -374,7 +351,7 @@ export async function reorderClustersInManifest(order: string[]): Promise<void> 
   }
   const next: Record<string, RawClusterEntry> = {};
   for (const slug of order) next[slug] = clusters[slug];
-  await writeManifestRaw(next);
+  return dumpManifestYaml(next);
 }
 
 // Bust the in-memory caches after a write to wiki/* or wiki/clusters.yml so
@@ -386,49 +363,41 @@ export function revalidateWikiCaches() {
   sourceKindCache.clear();
 }
 
-// Round-trip a page's frontmatter: read, mutate `data`, write back. The
-// markdown body is preserved as-is. Returns the new data shape.
+// Pure: round-trip a page's frontmatter — take the raw .md content and a
+// mutator, return the new content. Returns null when the mutation produced no
+// change (the mutator returned the original `data` unchanged).
 //
 // Date fields (`created`, `updated`) are normalized to YYYY-MM-DD strings
 // before write. YAML parses unquoted ISO dates into Date objects, which
 // js-yaml would otherwise re-emit as full ISO timestamps and break the
 // existing convention.
-export async function writePageFrontmatter(
-  filePath: string,
+export function computePageMdWithFrontmatter(
+  rawMd: string,
   mutate: (data: Record<string, unknown>) => Record<string, unknown> | void,
-): Promise<Record<string, unknown>> {
-  const raw = await fs.readFile(filePath, "utf8");
-  const parsed = matter(raw);
+): string | null {
+  const parsed = matter(rawMd);
+  const before = JSON.stringify({ ...parsed.data });
   const next = mutate({ ...parsed.data }) ?? parsed.data;
   const clean: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(next)) {
     if (v === undefined) continue;
     clean[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v;
   }
-  const out = matter.stringify(parsed.content, clean);
-  await fs.writeFile(filePath, out, "utf8");
-  return clean;
+  if (JSON.stringify(clean) === before) return null;
+  return matter.stringify(parsed.content, clean);
 }
 
-// Resolve a page slug array (e.g. ["concepts","agent-native"]) to its absolute
-// .md file path inside wiki/. Returns null if the slug escapes the wiki dir
-// or doesn't exist.
-export async function resolveWikiFilePath(slug: string[]): Promise<string | null> {
+// Validate a page slug array — does the slug stay inside wiki/ and contain
+// only safe segments? Returns the repo-relative path on success, null on
+// rejection. Does not check whether the file actually exists.
+export function repoPathForWikiSlug(slug: string[]): string | null {
   if (!slug.length) return null;
   for (const seg of slug) {
     if (!seg || seg.includes("..") || seg.includes("/") || seg.includes("\\")) {
       return null;
     }
   }
-  const filePath = path.join(WIKI_DIR, ...slug) + ".md";
-  const resolved = path.resolve(filePath);
-  if (!resolved.startsWith(path.resolve(WIKI_DIR) + path.sep)) return null;
-  try {
-    await fs.access(resolved);
-  } catch {
-    return null;
-  }
-  return resolved;
+  return `wiki/${slug.join("/")}.md`;
 }
 
 // Returns a per-category tree where each category is a list of cluster groups

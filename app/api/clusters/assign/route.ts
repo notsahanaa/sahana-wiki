@@ -1,10 +1,12 @@
 import {
+  computePageMdWithFrontmatter,
   getClusterManifest,
-  resolveWikiFilePath,
+  repoPathForWikiSlug,
   revalidateWikiCaches,
-  writePageFrontmatter,
 } from "@/lib/wiki";
-import { appendLogLine, today } from "@/lib/wiki-log";
+import { LOG_FILE_REPO_PATH, appendLogLineToContent, today } from "@/lib/wiki-log";
+import { persistChanges, readForPersist } from "@/lib/persist";
+import type { TreeChange } from "@/lib/github";
 
 // Set the cluster of one or more pages. `clusterSlug: null` clears it
 // (page lands in "Unsorted"). Each page belongs to exactly one cluster, so
@@ -44,40 +46,57 @@ export async function POST(request: Request) {
 
   const updated: string[][] = [];
   const skipped: string[][] = [];
+  const writes: TreeChange[] = [];
+
   for (const slug of pageSlugs) {
     if (!Array.isArray(slug) || slug.some((s) => typeof s !== "string")) {
       return Response.json({ error: "malformed pageSlugs entry" }, { status: 400 });
     }
-    const filePath = await resolveWikiFilePath(slug);
-    if (!filePath) {
+    const repoPath = repoPathForWikiSlug(slug);
+    if (!repoPath) {
       skipped.push(slug);
       continue;
     }
-    let didChange = false;
-    await writePageFrontmatter(filePath, (data) => {
+    const currentMd = await readForPersist(repoPath);
+    if (currentMd === null) {
+      skipped.push(slug);
+      continue;
+    }
+    const newMd = computePageMdWithFrontmatter(currentMd, (data) => {
       const current = typeof data.cluster === "string" ? data.cluster : null;
-      // Drop legacy clusters[] if present — we're authoritative now.
       const { clusters: _legacy, ...rest } = data;
       if (clusterSlug === null) {
         if (current === null && _legacy === undefined) return data;
-        didChange = true;
         const { cluster: _drop, ...withoutCluster } = rest;
         return { ...withoutCluster, updated: today() };
       }
       if (current === clusterSlug && _legacy === undefined) return data;
-      didChange = true;
       return { ...rest, cluster: clusterSlug, updated: today() };
     });
-    if (didChange) updated.push(slug);
+    if (newMd === null) continue;
+    writes.push({ path: repoPath, content: newMd });
+    updated.push(slug);
   }
 
-  if (updated.length > 0) {
-    const target = clusterSlug ?? "(unsorted)";
-    await appendLogLine(
-      `${today()} human cluster op: moved ${updated.length} page${updated.length === 1 ? "" : "s"} → \`${target}\` (${updated.map((s) => s.join("/")).join(", ")})`,
-    );
+  if (writes.length === 0) {
+    return Response.json({ updated, skipped });
   }
+
+  const target = clusterSlug ?? "(unsorted)";
+  const logLine = `${today()} human cluster op: moved ${updated.length} page${updated.length === 1 ? "" : "s"} → \`${target}\` (${updated.map((s) => s.join("/")).join(", ")})`;
+  const currentLog = await readForPersist(LOG_FILE_REPO_PATH);
+  const newLog = appendLogLineToContent(currentLog, logLine);
+
+  try {
+    await persistChanges({
+      message: `clusters: move ${updated.length} page${updated.length === 1 ? "" : "s"} → ${target}`,
+      changes: [...writes, { path: LOG_FILE_REPO_PATH, content: newLog }],
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "commit failed";
+    return Response.json({ error: message }, { status: 500 });
+  }
+
   revalidateWikiCaches();
-
   return Response.json({ updated, skipped });
 }

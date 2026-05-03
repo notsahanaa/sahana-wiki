@@ -16,6 +16,7 @@ interface ManageModeValue {
   manifest: ClusterDef[];
   busy: boolean;
   error: string | null;
+  clearError: () => void;
   // Move a single page into a cluster (or null = Unsorted). Used by drag-drop.
   setPageCluster: (
     pageSlug: string[],
@@ -55,6 +56,20 @@ export function ManageModeProvider({
     setError(null);
   }, []);
 
+  const clearError = useCallback(() => setError(null), []);
+
+  // Routes return JSON `{ error: "..." }` on failure. Pull the message out so
+  // we can show it as a sentence rather than as raw JSON.
+  async function extractError(res: Response): Promise<string> {
+    try {
+      const data = (await res.json()) as { error?: string };
+      if (typeof data.error === "string" && data.error) return data.error;
+    } catch {
+      // not JSON
+    }
+    return `request failed (${res.status})`;
+  }
+
   const setPageCluster = useCallback(
     async (pageSlug: string[], clusterSlug: string | null) => {
       setBusy(true);
@@ -66,8 +81,7 @@ export function ManageModeProvider({
           body: JSON.stringify({ pageSlugs: [pageSlug], clusterSlug }),
         });
         if (!res.ok) {
-          const text = await res.text();
-          setError(text || `request failed (${res.status})`);
+          setError(await extractError(res));
           return false;
         }
         router.refresh();
@@ -93,8 +107,7 @@ export function ManageModeProvider({
           body: JSON.stringify({ slug, title }),
         });
         if (!res.ok) {
-          const text = await res.text();
-          setError(text || `request failed (${res.status})`);
+          setError(await extractError(res));
           return false;
         }
         router.refresh();
@@ -120,13 +133,7 @@ export function ManageModeProvider({
           body: JSON.stringify(input),
         });
         if (!res.ok) {
-          let message = `request failed (${res.status})`;
-          try {
-            const data = (await res.json()) as { error?: string };
-            if (data.error) message = data.error;
-          } catch {
-            // ignore
-          }
+          const message = await extractError(res);
           setError(message);
           return { ok: false as const, error: message };
         }
@@ -154,8 +161,7 @@ export function ManageModeProvider({
           body: JSON.stringify({ order }),
         });
         if (!res.ok) {
-          const text = await res.text();
-          setError(text || `request failed (${res.status})`);
+          setError(await extractError(res));
           return false;
         }
         router.refresh();
@@ -181,8 +187,7 @@ export function ManageModeProvider({
           body: JSON.stringify({ slug }),
         });
         if (!res.ok) {
-          const text = await res.text();
-          setError(text || `request failed (${res.status})`);
+          setError(await extractError(res));
           return false;
         }
         router.refresh();
@@ -203,6 +208,7 @@ export function ManageModeProvider({
     manifest,
     busy,
     error,
+    clearError,
     setPageCluster,
     renameCluster,
     createCluster,
