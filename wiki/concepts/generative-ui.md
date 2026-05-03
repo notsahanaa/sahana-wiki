@@ -1,10 +1,15 @@
 ---
 title: Generative UI
 category: concepts
-tags: [ui, agents, agentic-ui, llm, frontend]
-cluster: paradigms
-created: 2026-05-03
-updated: 2026-05-03
+tags:
+  - ui
+  - agents
+  - agentic-ui
+  - llm
+  - frontend
+cluster: agentic-coding
+created: '2026-05-03'
+updated: '2026-05-03'
 ---
 
 # Generative UI
