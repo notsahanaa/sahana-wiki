@@ -98,3 +98,4 @@ Append-only chronological log of ingests, queries, and maintenance.
 ## 2026-05-03
 
 - **Ingest: Zencoder resource.** Promoted `inbox/2026-05-03-0026-zencoder-the-ai-coding-agent-resource.md` → `sources/zencoder-the-ai-coding-agent-resource.md`. Created new bucket page `wiki/resources/agentic-coding-tools.md`. Updated `index.md` to add Resources section.
+- **Ingest: Orthogonal resource.** Promoted `inbox/2026-05-03-0031-orthogonal-trusted-skills-and-apis-resource.md` → `sources/orthogonal-trusted-skills-and-apis-resource.md`. Added to `wiki/resources/agentic-coding-tools.md` (newest-first).
