@@ -8,7 +8,7 @@ tags:
   - identity
 created: '2026-04-26'
 updated: '2026-05-03'
-cluster: paradigms
+cluster: ai-taste
 ---
 
 # Taste as the New Skill Gap
