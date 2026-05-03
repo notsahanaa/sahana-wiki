@@ -57,6 +57,8 @@ The distinction is useful: the "agentic" layer is where architecture decisions c
 
 {{source:ai-dev-con-2026-observations}}2025 (the first wave) was about *what is possible*. 2026 is about *what is reliable and secure at scale.*{{/source}} Three pressures define that shift: regulatory (data residency), latency (fraud detection, real-time use cases), and data gravity (moving siloed data to one place). The architecture decisions that were optional in the exploration phase become load-bearing in production.
 
+The same shift applied to *internal* agents — operating them, not just building them — is its own concept: [[concepts/agent-native-office]]. {{source:2026-05-03-0145-agent-native-office-how-do-you-note}}Building an agent (2025) is easy; operating it at prod level isn't (2026).{{/source}}
+
 ## Trade-offs (honest)
 
 - **Speed.** Slower than deterministic code due to reasoning overhead.
@@ -90,6 +92,7 @@ Two distinct personal-cost failures are worth keeping next to the principles, be
 - [[concepts/super-porous-ecosystem]] — the supply-side view (atoms and how they compose)
 - [[concepts/hypercreativity]] — what working in agent-native systems feels like for the individual
 - [[concepts/one-person-studios]] — what agent-native makes possible at the org level
+- [[concepts/agent-native-office]] — what agent-native makes *operationally* necessary at the org level
 
 - [[concepts/folder-is-the-agent]] — one specific architectural shape
 - [[concepts/llm-as-librarian]] — the PKM-flavored sibling

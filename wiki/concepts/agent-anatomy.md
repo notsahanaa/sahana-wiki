@@ -24,7 +24,7 @@ The reasoning and language engine: decides what to do next. Examples span the fu
 - Guardrails and recovery
 - Integration layer
 
-The runtime is where most of the architectural decisions live: how context is assembled, when to retry, and how failures are surfaced. [[concepts/folder-is-the-agent]] argues that a well-structured folder *is* an effective runtime — context, not orchestration framework, is the unit of leverage.
+The runtime is where most of the architectural decisions live: how context is assembled, when to retry, and how failures are surfaced. [[concepts/folder-is-the-agent]] argues that a well-structured folder *is* an effective runtime — context, not orchestration framework, is the unit of leverage. The data side of the runtime — what the model sees on each turn, and where it comes from — is its own discipline: [[concepts/context-engineering]].
 
 ## 3. Tools
 
@@ -37,6 +37,8 @@ MCP (Model Context Protocol) is rapidly becoming the standard interface for wiri
 Conflating "model" with "agent" obscures where capability actually lives. A stronger model improves step 1; better runtime design improves reliability and cost across all steps; richer tools expand what's possible in step 3. Optimizing only the model while ignoring runtime and tools is a common failure mode.
 
 See also:
+- [[concepts/context-engineering]] — what the runtime actually engineers
 - [[concepts/folder-is-the-agent]] — the folder as runtime
 - [[concepts/agent-native]] — software architected for agents as first-class citizens
+- [[concepts/agent-native-office]] — runtime concerns (durability, sandbox, eval) at org scale
 - [[concepts/compound-engineering]] — stacking folder-agents into reusable scaffolds

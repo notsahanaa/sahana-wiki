@@ -21,6 +21,7 @@ How software gets built when AI agents are first-class — Claude Code patterns,
 
 - [[concepts/folder-is-the-agent]] — Klaassen's pattern: a well-structured folder + CLAUDE.md is itself an effective agent.
 - [[concepts/agent-anatomy]] — the three-layer breakdown of what an agent is: Model, Runtime, and Tools.
+- [[concepts/context-engineering]] — context (not reasoning) is the hard problem; context engineering vs. harness engineering; agentic search at the database edge.
 
 ### AI Taste Training
 
@@ -36,6 +37,7 @@ New shapes of creating, working, and living that the agent stack makes possible 
 - [[concepts/one-person-studios]] — the individual at the center of a web of replaceable tools, instead of vice versa; clones-not-employees, `soul.md`.
 - [[concepts/super-porous-ecosystem]] — products as physically-composed atoms (prompts, tools, skills, MCPs, agents) that are swappable without breaking. *Also clusters under Moats.*
 - [[concepts/generative-ui]] — three-type taxonomy of gen UI (controlled, declarative, open); CLUF and enablement stack as future directions.
+- [[concepts/agent-native-office]] — operating internal agents at prod: agents as new users, MCP-exposed surfaces, proactive event-triggered runs, multiplayer (h2h / h2a / a2a).
 
 ### Moats & Defensibility
 
