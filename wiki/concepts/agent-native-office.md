@@ -7,7 +7,7 @@ tags:
   - mcp
   - observability
   - multiplayer
-cluster: paradigms
+cluster: agentic-coding
 created: '2026-05-03'
 updated: '2026-05-06'
 ---
